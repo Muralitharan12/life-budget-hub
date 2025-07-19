@@ -111,24 +111,7 @@ const ConfigurationInheritance = ({
   const getAvailableConfigurations = () => {
     const configs = [];
 
-    // Only show configurations if they exist for the selected month/year OR it's the current month/year
-    const currentDate = new Date();
-    const isCurrentMonthYear =
-      selectedMonth === currentDate.getMonth() &&
-      selectedYear === currentDate.getFullYear();
-
-    // For current month/year, always show available configs to allow inheritance
-    // For historical periods, only show if there are configurations AND data for that period
-    const shouldShowConfigs =
-      isCurrentMonthYear ||
-      (sourceBudgetConfig &&
-        // Check if useBudgetData actually returned config data (meaning there's data for this period)
-        !dataLoading);
-
-    if (!shouldShowConfigs) {
-      return configs;
-    }
-
+    // Since we're using inheritance mode, we can directly check for configurations
     if (sourceBudgetConfig && sourceBudgetConfig.monthly_salary > 0) {
       configs.push("Complete Budget Configuration");
     }
