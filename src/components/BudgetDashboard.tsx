@@ -1601,6 +1601,12 @@ const BudgetDashboard = () => {
           </p>
         </div>
 
+        <ConfigurationInheritance
+          onConfigurationsInherited={handleConfigurationsInherited}
+          currentMonth={selectedMonth}
+          currentYear={selectedYear}
+        />
+
         <SalaryConfig
           onSalaryUpdate={onSalaryUpdate}
           currentSalary={currentSalary}
@@ -2506,7 +2512,7 @@ const BudgetDashboard = () => {
                     <span className="font-medium">Savings</span>
                   </div>
                   <span className="font-bold text-success">
-                    -��{balanceData.expenses.savings.toLocaleString()}
+                    -₹{balanceData.expenses.savings.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
