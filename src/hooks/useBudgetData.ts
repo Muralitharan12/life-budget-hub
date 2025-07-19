@@ -57,19 +57,112 @@ export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
           profiles["murali"] ||
           profiles["valar"];
         if (userProfile) {
-          setBudgetConfig({
-            id: "local",
+          // Check if we have transactions for the selected month/year
+          const hasTransactionsForPeriod =
+            userProfile.expenses?.some((expense: any) => {
+              if (selectedMonth === undefined || selectedYear === undefined)
+                return true;
+              const expenseDate = new Date(expense.date);
+              return (
+                expenseDate.getMonth() === selectedMonth &&
+                expenseDate.getFullYear() === selectedYear
+              );
+            }) || false;
+
+          // For current month/year (not historical), always show configs to allow configuration
+          const currentDate = new Date();
+          const isCurrentMonthYear =
+            selectedMonth === currentDate.getMonth() &&
+            selectedYear === currentDate.getFullYear();
+
+          // If no specific month/year is selected, show current configs
+          const shouldShowConfigs =
+            selectedMonth === undefined && selectedYear === undefined;
+
+          if (
+            shouldShowConfigs ||
+            isCurrentMonthYear ||
+            hasTransactionsForPeriod
+          ) {
+            setBudgetConfig({
+              id: "local",
+              user_id: user?.id || "local",
+              monthly_salary: userProfile.salary || 0,
+              budget_percentage: userProfile.budgetPercentage || 0,
+              allocation_need: userProfile.budgetAllocation?.need || 0,
+              allocation_want: userProfile.budgetAllocation?.want || 0,
+              allocation_savings: userProfile.budgetAllocation?.savings || 0,
+              allocation_investments:
+                userProfile.budgetAllocation?.investments || 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+
+            // Set portfolios from localStorage
+            if (userProfile.investmentPlan?.portfolios) {
+              setPortfolios(
+                userProfile.investmentPlan.portfolios.map((portfolio: any) => ({
+                  id: portfolio.id,
+                  user_id: user?.id || "local",
+                  name: portfolio.name,
+                  allocation_type: portfolio.allocationType,
+                  allocation_value: portfolio.allocationValue,
+                  allocated_amount: portfolio.allocatedAmount,
+                  invested_amount: portfolio.investedAmount || 0,
+                  allow_direct_investment:
+                    portfolio.allowDirectInvestment || false,
+                  is_active: true,
+                  categories: portfolio.categories || [],
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })),
+              );
+            }
+          } else {
+            // No transactions for this month/year and it's not current period - clear configs
+            setBudgetConfig(null);
+            setPortfolios([]);
+          }
+
+          // Set transactions filtered by month/year
+          const filteredExpenses =
+            userProfile.expenses?.filter((expense: any) => {
+              if (selectedMonth === undefined || selectedYear === undefined)
+                return true;
+              const expenseDate = new Date(expense.date);
+              return (
+                expenseDate.getMonth() === selectedMonth &&
+                expenseDate.getFullYear() === selectedYear
+              );
+            }) || [];
+
+          // Convert localStorage expenses to transaction format
+          const transactions = filteredExpenses.map((expense: any) => ({
+            id: expense.id,
             user_id: user?.id || "local",
-            monthly_salary: userProfile.salary || 0,
-            budget_percentage: userProfile.budgetPercentage || 0,
-            allocation_need: userProfile.budgetAllocation?.need || 0,
-            allocation_want: userProfile.budgetAllocation?.want || 0,
-            allocation_savings: userProfile.budgetAllocation?.savings || 0,
-            allocation_investments:
-              userProfile.budgetAllocation?.investments || 0,
+            type: "expense" as const,
+            category: expense.category,
+            amount: expense.amount,
+            description: expense.spentFor,
+            notes: expense.notes,
+            date: expense.date,
+            time: null,
+            payment_type: expense.paymentType?.toLowerCase() || "other",
+            spent_for: expense.spentFor,
+            tag: expense.tag,
+            portfolio_id: null,
+            investment_type: null,
+            refund_for: null,
+            original_transaction_id: null,
+            status: "active" as const,
+            is_deleted: false,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          });
+            deleted_at: null,
+          }));
+
+          setTransactions(transactions);
+
           console.log("✅ Loaded data from localStorage as fallback");
           return true;
         }
