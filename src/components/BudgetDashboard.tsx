@@ -3295,35 +3295,105 @@ const BudgetDashboard = () => {
         </div>
 
         {/* No Data Message */}
-        {!allocatedAmounts.hasData && (
+        {!allocatedAmounts.hasData && !budgetConfig && (
           <Card className="border-muted-foreground/20 bg-muted/5 mb-6">
             <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="mx-auto w-12 h-12 bg-muted/20 rounded-full flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-muted-foreground" />
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center">
+                  <Calendar className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="font-semibold text-lg text-muted-foreground">
-                  No Data for {monthNames[selectedMonth]} {selectedYear}
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  There are no transactions recorded for this month and year.
-                  Budget allocations are only shown for months with actual
-                  financial activity or the current month.
-                </p>
-                <div className="text-xs text-muted-foreground mt-3">
-                  <p>💡 Budget plans are displayed when:</p>
-                  <p>
-                    • It's the current month (
-                    {monthNames[new Date().getMonth()]}{" "}
-                    {new Date().getFullYear()})
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-xl text-foreground">
+                    No Data for {monthNames[selectedMonth]} {selectedYear}
+                  </h3>
+                  <p className="text-muted-foreground max-w-lg mx-auto">
+                    There are no budget configurations or transactions recorded
+                    for this month and year. To get started, you can either
+                    inherit configurations from a previous period or set up new
+                    ones.
                   </p>
-                  <p>
-                    • There are recorded transactions for the selected period
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                  <Button
+                    onClick={() => setIsConfigAuthenticated(true)}
+                    variant="default"
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Set Up New Configuration
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const currentDate = new Date();
+                      setSelectedMonth(currentDate.getMonth());
+                      setSelectedYear(currentDate.getFullYear());
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Go to Current Month
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/10 rounded-lg">
+                  <p className="font-medium mb-2">
+                    💡 Budget data is shown when:
                   </p>
+                  <div className="space-y-1">
+                    <p>
+                      • It's the current month (
+                      {monthNames[new Date().getMonth()]}{" "}
+                      {new Date().getFullYear()})
+                    </p>
+                    <p>
+                      • There are recorded transactions for the selected period
+                    </p>
+                    <p>
+                      • Configurations have been inherited or set up for this
+                      period
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Show quick stats only if we have data or it's current month */}
+        {(allocatedAmounts.hasData || budgetConfig) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <QuickStatsCard
+              title="Total Budget"
+              amount={calculatedTotalBudget}
+              icon={Target}
+              variant="default"
+              change={5.2}
+            />
+            <QuickStatsCard
+              title="Need (Essential)"
+              amount={allocatedAmounts.need}
+              icon={Home}
+              variant="destructive"
+            />
+            <QuickStatsCard
+              title="Want (Discretionary)"
+              amount={allocatedAmounts.want}
+              icon={Music}
+              variant="warning"
+            />
+            <QuickStatsCard
+              title="Savings"
+              amount={allocatedAmounts.savings}
+              icon={PiggyBank}
+              variant="success"
+            />
+            <QuickStatsCard
+              title="Investments"
+              amount={allocatedAmounts.investments}
+              icon={TrendingUp}
+              variant="default"
+            />
+          </div>
         )}
 
         {/* Main Navigation Tabs */}
