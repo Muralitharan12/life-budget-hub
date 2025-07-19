@@ -83,11 +83,12 @@ const ConfigurationInheritance = ({
   const { toast } = useToast();
 
   // Get data from the selected month/year to check if configurations exist
+  // Use inheritance mode to bypass transaction filtering and get configs for inheritance
   const {
     budgetConfig: sourceBudgetConfig,
     portfolios: sourcePortfolios,
     loading: dataLoading,
-  } = useBudgetData(selectedMonth, selectedYear);
+  } = useBudgetData(selectedMonth, selectedYear, true); // inheritanceMode = true
 
   const monthNames = [
     "January",
