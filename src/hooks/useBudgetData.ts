@@ -17,7 +17,11 @@ type InvestmentPortfolioInsert =
 type InvestmentPortfolioUpdate =
   Database["public"]["Tables"]["investment_portfolios"]["Update"];
 
-export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
+export function useBudgetData(
+  selectedMonth?: number,
+  selectedYear?: number,
+  inheritanceMode: boolean = false,
+) {
   const { user } = useAuth();
   const [budgetConfig, setBudgetConfig] = useState<BudgetConfig | null>(null);
   const [portfolios, setPortfolios] = useState<InvestmentPortfolio[]>([]);
