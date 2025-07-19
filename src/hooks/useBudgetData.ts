@@ -83,10 +83,14 @@ export function useBudgetData(
           const shouldShowConfigs =
             selectedMonth === undefined && selectedYear === undefined;
 
+          // In inheritance mode, always show configs regardless of transactions to allow inheritance
+          const shouldShowForInheritance = inheritanceMode;
+
           if (
             shouldShowConfigs ||
             isCurrentMonthYear ||
-            hasTransactionsForPeriod
+            hasTransactionsForPeriod ||
+            shouldShowForInheritance
           ) {
             setBudgetConfig({
               id: "local",
