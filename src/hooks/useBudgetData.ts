@@ -348,7 +348,15 @@ export function useBudgetData(
         selectedMonth === currentDate.getMonth() &&
         selectedYear === currentDate.getFullYear();
 
-      if (shouldShowConfigs || isCurrentMonthYear || hasTransactionsForPeriod) {
+      // In inheritance mode, always fetch configs regardless of transactions to allow inheritance
+      const shouldFetchForInheritance = inheritanceMode;
+
+      if (
+        shouldShowConfigs ||
+        isCurrentMonthYear ||
+        hasTransactionsForPeriod ||
+        shouldFetchForInheritance
+      ) {
         // Fetch budget config
         const { data: configData, error: configError } = await supabase
           .from("budget_configs")
