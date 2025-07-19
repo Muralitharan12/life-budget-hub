@@ -511,7 +511,13 @@ export function useBudgetData(
     } finally {
       setLoading(false);
     }
-  }, [user, isSupabaseConfigured, selectedMonth, selectedYear]);
+  }, [
+    user,
+    isSupabaseConfigured,
+    selectedMonth,
+    selectedYear,
+    inheritanceMode,
+  ]);
 
   // CRUD Operations for Budget Config
   const saveBudgetConfig = async (
