@@ -723,6 +723,65 @@ const BudgetDashboard = () => {
     saveProfiles(updatedProfiles);
   };
 
+  const handleConfigurationsInherited = async (configurations: {
+    budgetConfig: {
+      salary: number;
+      budgetPercentage: number;
+      allocation: BudgetAllocation;
+    };
+    investmentPlan: InvestmentPlan;
+  }) => {
+    try {
+      // Update budget configuration if available
+      if (configurations.budgetConfig.salary > 0) {
+        await handleSalaryUpdate(
+          configurations.budgetConfig.salary,
+          configurations.budgetConfig.budgetPercentage,
+          configurations.budgetConfig.allocation,
+        );
+      }
+
+      // Update investment plan if available
+      if (configurations.investmentPlan.portfolios.length > 0) {
+        // For Supabase users, save each portfolio
+        if (user) {
+          for (const portfolio of configurations.investmentPlan.portfolios) {
+            try {
+              await saveInvestmentPortfolio({
+                name: portfolio.name,
+                allocation_type: portfolio.allocationType,
+                allocation_value: portfolio.allocationValue,
+                allocated_amount: portfolio.allocatedAmount,
+                allow_direct_investment: portfolio.allowDirectInvestment,
+                categories: portfolio.categories || [],
+                is_active: true,
+              });
+            } catch (error) {
+              console.warn("Failed to save portfolio:", portfolio.name, error);
+            }
+          }
+        } else {
+          // For localStorage users
+          handleInvestmentPlanUpdate(configurations.investmentPlan);
+        }
+      }
+
+      toast({
+        title: "Configurations Applied",
+        description:
+          "All inherited configurations have been successfully applied to the current period.",
+      });
+    } catch (error) {
+      console.error("Error applying inherited configurations:", error);
+      toast({
+        title: "Application Failed",
+        description:
+          "Some configurations could not be applied. Please check and try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleProfileChange = (value: string) => {
     if (value) {
       setCurrentUser(value as "murali" | "valar" | "combined");
@@ -2447,7 +2506,7 @@ const BudgetDashboard = () => {
                     <span className="font-medium">Savings</span>
                   </div>
                   <span className="font-bold text-success">
-                    -₹{balanceData.expenses.savings.toLocaleString()}
+                    -��{balanceData.expenses.savings.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
@@ -3933,7 +3992,7 @@ const BudgetDashboard = () => {
                                     Want Expenses
                                   </p>
                                   <p className="text-lg font-bold text-warning">
-                                    ��
+                                    ₹
                                     {allTransactions
                                       .filter(
                                         (t) =>
