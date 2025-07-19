@@ -350,7 +350,7 @@ const BudgetDashboard = () => {
     // Always show budget plan for current month
     if (isCurrentMonth) return true;
 
-    // For past/future months, check if we have actual transaction data
+    // For Supabase data, check if we have actual transaction data for the selected month/year
     if (supabaseTransactions?.length > 0) {
       return supabaseTransactions.some((transaction) => {
         const transactionDate = new Date(transaction.date);
@@ -2714,7 +2714,7 @@ const BudgetDashboard = () => {
                                         : "text-destructive"
                                     }
                                   >
-                                    Remaining: ₹
+                                    Remaining: ��
                                     {categoryRemaining.toLocaleString()}
                                   </span>
                                 </div>
