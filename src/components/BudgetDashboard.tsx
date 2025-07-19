@@ -69,6 +69,7 @@ import { useBudgetData } from "@/hooks/useBudgetData";
 import { useAuth } from "@/hooks/useAuth";
 import SalaryConfig from "./SalaryConfig";
 import InvestmentConfig from "./InvestmentConfig";
+import ConfigurationInheritance from "./ConfigurationInheritance";
 
 interface BudgetAllocation {
   need: number;
@@ -349,7 +350,7 @@ const BudgetDashboard = () => {
     // Always show budget plan for current month
     if (isCurrentMonth) return true;
 
-    // For past/future months, check if we have actual transaction data
+    // For Supabase data, check if we have actual transaction data for the selected month/year
     if (supabaseTransactions?.length > 0) {
       return supabaseTransactions.some((transaction) => {
         const transactionDate = new Date(transaction.date);
@@ -720,6 +721,65 @@ const BudgetDashboard = () => {
     };
 
     saveProfiles(updatedProfiles);
+  };
+
+  const handleConfigurationsInherited = async (configurations: {
+    budgetConfig: {
+      salary: number;
+      budgetPercentage: number;
+      allocation: BudgetAllocation;
+    };
+    investmentPlan: InvestmentPlan;
+  }) => {
+    try {
+      // Update budget configuration if available
+      if (configurations.budgetConfig.salary > 0) {
+        await handleSalaryUpdate(
+          configurations.budgetConfig.salary,
+          configurations.budgetConfig.budgetPercentage,
+          configurations.budgetConfig.allocation,
+        );
+      }
+
+      // Update investment plan if available
+      if (configurations.investmentPlan.portfolios.length > 0) {
+        // For Supabase users, save each portfolio
+        if (user) {
+          for (const portfolio of configurations.investmentPlan.portfolios) {
+            try {
+              await saveInvestmentPortfolio({
+                name: portfolio.name,
+                allocation_type: portfolio.allocationType,
+                allocation_value: portfolio.allocationValue,
+                allocated_amount: portfolio.allocatedAmount,
+                allow_direct_investment: portfolio.allowDirectInvestment,
+                categories: portfolio.categories || [],
+                is_active: true,
+              });
+            } catch (error) {
+              console.warn("Failed to save portfolio:", portfolio.name, error);
+            }
+          }
+        } else {
+          // For localStorage users
+          handleInvestmentPlanUpdate(configurations.investmentPlan);
+        }
+      }
+
+      toast({
+        title: "Configurations Applied",
+        description:
+          "All inherited configurations have been successfully applied to the current period.",
+      });
+    } catch (error) {
+      console.error("Error applying inherited configurations:", error);
+      toast({
+        title: "Application Failed",
+        description:
+          "Some configurations could not be applied. Please check and try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleProfileChange = (value: string) => {
@@ -1540,6 +1600,12 @@ const BudgetDashboard = () => {
             You now have access to all configuration settings
           </p>
         </div>
+
+        <ConfigurationInheritance
+          onConfigurationsInherited={handleConfigurationsInherited}
+          currentMonth={selectedMonth}
+          currentYear={selectedYear}
+        />
 
         <SalaryConfig
           onSalaryUpdate={onSalaryUpdate}
@@ -2648,7 +2714,7 @@ const BudgetDashboard = () => {
                                         : "text-destructive"
                                     }
                                   >
-                                    Remaining: ₹
+                                    Remaining: ��
                                     {categoryRemaining.toLocaleString()}
                                   </span>
                                 </div>
@@ -3193,71 +3259,106 @@ const BudgetDashboard = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Stats - Budget Categories */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <QuickStatsCard
-            title="Total Budget"
-            amount={calculatedTotalBudget}
-            icon={Target}
-            variant="default"
-            change={5.2}
-          />
-          <QuickStatsCard
-            title="Need (Essential)"
-            amount={allocatedAmounts.need}
-            icon={Home}
-            variant="destructive"
-          />
-          <QuickStatsCard
-            title="Want (Discretionary)"
-            amount={allocatedAmounts.want}
-            icon={Music}
-            variant="warning"
-          />
-          <QuickStatsCard
-            title="Savings"
-            amount={allocatedAmounts.savings}
-            icon={PiggyBank}
-            variant="success"
-          />
-          <QuickStatsCard
-            title="Investments"
-            amount={allocatedAmounts.investments}
-            icon={TrendingUp}
-            variant="default"
-          />
-        </div>
-
         {/* No Data Message */}
-        {!allocatedAmounts.hasData && (
+        {!allocatedAmounts.hasData && !budgetConfig && (
           <Card className="border-muted-foreground/20 bg-muted/5 mb-6">
             <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <div className="mx-auto w-12 h-12 bg-muted/20 rounded-full flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-muted-foreground" />
+              <div className="text-center space-y-4">
+                <div className="mx-auto w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center">
+                  <Calendar className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="font-semibold text-lg text-muted-foreground">
-                  No Data for {monthNames[selectedMonth]} {selectedYear}
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  There are no transactions recorded for this month and year.
-                  Budget allocations are only shown for months with actual
-                  financial activity or the current month.
-                </p>
-                <div className="text-xs text-muted-foreground mt-3">
-                  <p>💡 Budget plans are displayed when:</p>
-                  <p>
-                    • It's the current month (
-                    {monthNames[new Date().getMonth()]}{" "}
-                    {new Date().getFullYear()})
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-xl text-foreground">
+                    No Data for {monthNames[selectedMonth]} {selectedYear}
+                  </h3>
+                  <p className="text-muted-foreground max-w-lg mx-auto">
+                    There are no budget configurations or transactions recorded
+                    for this month and year. To get started, you can either
+                    inherit configurations from a previous period or set up new
+                    ones.
                   </p>
-                  <p>
-                    • There are recorded transactions for the selected period
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                  <Button
+                    onClick={() => setIsConfigAuthenticated(true)}
+                    variant="default"
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Set Up New Configuration
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const currentDate = new Date();
+                      setSelectedMonth(currentDate.getMonth());
+                      setSelectedYear(currentDate.getFullYear());
+                    }}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Go to Current Month
+                  </Button>
+                </div>
+                <div className="text-xs text-muted-foreground mt-4 p-3 bg-muted/10 rounded-lg">
+                  <p className="font-medium mb-2">
+                    💡 Budget data is shown when:
                   </p>
+                  <div className="space-y-1">
+                    <p>
+                      • It's the current month (
+                      {monthNames[new Date().getMonth()]}{" "}
+                      {new Date().getFullYear()})
+                    </p>
+                    <p>
+                      • There are recorded transactions for the selected period
+                    </p>
+                    <p>
+                      • Configurations have been inherited or set up for this
+                      period
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Show quick stats only if we have data or it's current month */}
+        {(allocatedAmounts.hasData || budgetConfig) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <QuickStatsCard
+              title="Total Budget"
+              amount={calculatedTotalBudget}
+              icon={Target}
+              variant="default"
+              change={5.2}
+            />
+            <QuickStatsCard
+              title="Need (Essential)"
+              amount={allocatedAmounts.need}
+              icon={Home}
+              variant="destructive"
+            />
+            <QuickStatsCard
+              title="Want (Discretionary)"
+              amount={allocatedAmounts.want}
+              icon={Music}
+              variant="warning"
+            />
+            <QuickStatsCard
+              title="Savings"
+              amount={allocatedAmounts.savings}
+              icon={PiggyBank}
+              variant="success"
+            />
+            <QuickStatsCard
+              title="Investments"
+              amount={allocatedAmounts.investments}
+              icon={TrendingUp}
+              variant="default"
+            />
+          </div>
         )}
 
         {/* Main Navigation Tabs */}

@@ -17,7 +17,11 @@ type InvestmentPortfolioInsert =
 type InvestmentPortfolioUpdate =
   Database["public"]["Tables"]["investment_portfolios"]["Update"];
 
-export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
+export function useBudgetData(
+  selectedMonth?: number,
+  selectedYear?: number,
+  inheritanceMode: boolean = false,
+) {
   const { user } = useAuth();
   const [budgetConfig, setBudgetConfig] = useState<BudgetConfig | null>(null);
   const [portfolios, setPortfolios] = useState<InvestmentPortfolio[]>([]);
@@ -57,19 +61,116 @@ export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
           profiles["murali"] ||
           profiles["valar"];
         if (userProfile) {
-          setBudgetConfig({
-            id: "local",
+          // Check if we have transactions for the selected month/year
+          const hasTransactionsForPeriod =
+            userProfile.expenses?.some((expense: any) => {
+              if (selectedMonth === undefined || selectedYear === undefined)
+                return true;
+              const expenseDate = new Date(expense.date);
+              return (
+                expenseDate.getMonth() === selectedMonth &&
+                expenseDate.getFullYear() === selectedYear
+              );
+            }) || false;
+
+          // For current month/year (not historical), always show configs to allow configuration
+          const currentDate = new Date();
+          const isCurrentMonthYear =
+            selectedMonth === currentDate.getMonth() &&
+            selectedYear === currentDate.getFullYear();
+
+          // If no specific month/year is selected, show current configs
+          const shouldShowConfigs =
+            selectedMonth === undefined && selectedYear === undefined;
+
+          // In inheritance mode, always show configs regardless of transactions to allow inheritance
+          const shouldShowForInheritance = inheritanceMode;
+
+          if (
+            shouldShowConfigs ||
+            isCurrentMonthYear ||
+            hasTransactionsForPeriod ||
+            shouldShowForInheritance
+          ) {
+            setBudgetConfig({
+              id: "local",
+              user_id: user?.id || "local",
+              monthly_salary: userProfile.salary || 0,
+              budget_percentage: userProfile.budgetPercentage || 0,
+              allocation_need: userProfile.budgetAllocation?.need || 0,
+              allocation_want: userProfile.budgetAllocation?.want || 0,
+              allocation_savings: userProfile.budgetAllocation?.savings || 0,
+              allocation_investments:
+                userProfile.budgetAllocation?.investments || 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+
+            // Set portfolios from localStorage
+            if (userProfile.investmentPlan?.portfolios) {
+              setPortfolios(
+                userProfile.investmentPlan.portfolios.map((portfolio: any) => ({
+                  id: portfolio.id,
+                  user_id: user?.id || "local",
+                  name: portfolio.name,
+                  allocation_type: portfolio.allocationType,
+                  allocation_value: portfolio.allocationValue,
+                  allocated_amount: portfolio.allocatedAmount,
+                  invested_amount: portfolio.investedAmount || 0,
+                  allow_direct_investment:
+                    portfolio.allowDirectInvestment || false,
+                  is_active: true,
+                  categories: portfolio.categories || [],
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })),
+              );
+            }
+          } else {
+            // No transactions for this month/year and it's not current period - clear configs
+            setBudgetConfig(null);
+            setPortfolios([]);
+          }
+
+          // Set transactions filtered by month/year
+          const filteredExpenses =
+            userProfile.expenses?.filter((expense: any) => {
+              if (selectedMonth === undefined || selectedYear === undefined)
+                return true;
+              const expenseDate = new Date(expense.date);
+              return (
+                expenseDate.getMonth() === selectedMonth &&
+                expenseDate.getFullYear() === selectedYear
+              );
+            }) || [];
+
+          // Convert localStorage expenses to transaction format
+          const transactions = filteredExpenses.map((expense: any) => ({
+            id: expense.id,
             user_id: user?.id || "local",
-            monthly_salary: userProfile.salary || 0,
-            budget_percentage: userProfile.budgetPercentage || 0,
-            allocation_need: userProfile.budgetAllocation?.need || 0,
-            allocation_want: userProfile.budgetAllocation?.want || 0,
-            allocation_savings: userProfile.budgetAllocation?.savings || 0,
-            allocation_investments:
-              userProfile.budgetAllocation?.investments || 0,
+            type: "expense" as const,
+            category: expense.category,
+            amount: expense.amount,
+            description: expense.spentFor,
+            notes: expense.notes,
+            date: expense.date,
+            time: null,
+            payment_type: expense.paymentType?.toLowerCase() || "other",
+            spent_for: expense.spentFor,
+            tag: expense.tag,
+            portfolio_id: null,
+            investment_type: null,
+            refund_for: null,
+            original_transaction_id: null,
+            status: "active" as const,
+            is_deleted: false,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          });
+            deleted_at: null,
+          }));
+
+          setTransactions(transactions);
+
           console.log("✅ Loaded data from localStorage as fallback");
           return true;
         }
@@ -178,98 +279,7 @@ export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
         console.log("✅ Supabase connectivity test passed", testData);
       }
 
-      // Fetch budget config
-      const { data: configData, error: configError } = await supabase
-        .from("budget_configs")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (configError && configError.code !== "PGRST116") {
-        console.error("Error fetching budget config:");
-        console.error(
-          "Full error object:",
-          JSON.stringify(configError, null, 2),
-        );
-        console.error("Error keys:", Object.keys(configError));
-        console.error(
-          "Structured error:",
-          JSON.stringify(
-            {
-              message: configError.message || "No message",
-              details: configError.details || "No details",
-              hint: configError.hint || "No hint",
-              code: configError.code || "No code",
-              name: configError.name || "No name",
-            },
-            null,
-            2,
-          ),
-        );
-
-        // Show helpful error messages for common issues
-        if (configError.code === "42P01") {
-          console.error(
-            '❌ Table "budget_configs" does not exist in your Supabase database',
-          );
-          console.log(
-            "💡 Please run the database migration scripts to create the required tables",
-          );
-        } else if (configError.code === "PGRST301") {
-          console.error(
-            "❌ RLS (Row Level Security) is blocking access to budget_configs table",
-          );
-          console.log(
-            "💡 Please check your RLS policies or disable RLS for development",
-          );
-        }
-      } else {
-        setBudgetConfig(configData);
-      }
-
-      // Fetch investment portfolios
-      const { data: portfolioData, error: portfolioError } = await supabase
-        .from("investment_portfolios")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true });
-
-      if (portfolioError) {
-        console.error("Error fetching portfolios:");
-        console.error(
-          "Full error object:",
-          JSON.stringify(portfolioError, null, 2),
-        );
-        console.error("Error keys:", Object.keys(portfolioError));
-        console.error(
-          "Structured error:",
-          JSON.stringify(
-            {
-              message: portfolioError.message || "No message",
-              details: portfolioError.details || "No details",
-              hint: portfolioError.hint || "No hint",
-              code: portfolioError.code || "No code",
-              name: portfolioError.name || "No name",
-            },
-            null,
-            2,
-          ),
-        );
-
-        if (portfolioError.code === "42P01") {
-          console.error(
-            '❌ Table "investment_portfolios" does not exist in your Supabase database',
-          );
-        } else if (portfolioError.code === "PGRST301") {
-          console.error(
-            "❌ RLS is blocking access to investment_portfolios table",
-          );
-        }
-      } else {
-        setPortfolios(portfolioData || []);
-      }
-
-      // Fetch transactions filtered by month/year if provided
+      // Fetch transactions filtered by month/year if provided - DO THIS FIRST
       let transactionQuery = supabase
         .from("transactions")
         .select("*")
@@ -328,6 +338,125 @@ export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
         setTransactions(transactionData || []);
       }
 
+      // Only fetch budget config and portfolios if we have transactions for the selected month/year
+      const hasTransactionsForPeriod =
+        transactionData && transactionData.length > 0;
+
+      // If no specific month/year is selected, show current configs
+      const shouldShowConfigs =
+        selectedMonth === undefined && selectedYear === undefined;
+
+      // For current month/year (not historical), always show configs to allow configuration
+      const currentDate = new Date();
+      const isCurrentMonthYear =
+        selectedMonth === currentDate.getMonth() &&
+        selectedYear === currentDate.getFullYear();
+
+      // In inheritance mode, always fetch configs regardless of transactions to allow inheritance
+      const shouldFetchForInheritance = inheritanceMode;
+
+      if (
+        shouldShowConfigs ||
+        isCurrentMonthYear ||
+        hasTransactionsForPeriod ||
+        shouldFetchForInheritance
+      ) {
+        // Fetch budget config
+        const { data: configData, error: configError } = await supabase
+          .from("budget_configs")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
+        if (configError && configError.code !== "PGRST116") {
+          console.error("Error fetching budget config:");
+          console.error(
+            "Full error object:",
+            JSON.stringify(configError, null, 2),
+          );
+          console.error("Error keys:", Object.keys(configError));
+          console.error(
+            "Structured error:",
+            JSON.stringify(
+              {
+                message: configError.message || "No message",
+                details: configError.details || "No details",
+                hint: configError.hint || "No hint",
+                code: configError.code || "No code",
+                name: configError.name || "No name",
+              },
+              null,
+              2,
+            ),
+          );
+
+          // Show helpful error messages for common issues
+          if (configError.code === "42P01") {
+            console.error(
+              '❌ Table "budget_configs" does not exist in your Supabase database',
+            );
+            console.log(
+              "💡 Please run the database migration scripts to create the required tables",
+            );
+          } else if (configError.code === "PGRST301") {
+            console.error(
+              "❌ RLS (Row Level Security) is blocking access to budget_configs table",
+            );
+            console.log(
+              "💡 Please check your RLS policies or disable RLS for development",
+            );
+          }
+        } else {
+          setBudgetConfig(configData);
+        }
+
+        // Fetch investment portfolios
+        const { data: portfolioData, error: portfolioError } = await supabase
+          .from("investment_portfolios")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (portfolioError) {
+          console.error("Error fetching portfolios:");
+          console.error(
+            "Full error object:",
+            JSON.stringify(portfolioError, null, 2),
+          );
+          console.error("Error keys:", Object.keys(portfolioError));
+          console.error(
+            "Structured error:",
+            JSON.stringify(
+              {
+                message: portfolioError.message || "No message",
+                details: portfolioError.details || "No details",
+                hint: portfolioError.hint || "No hint",
+                code: portfolioError.code || "No code",
+                name: portfolioError.name || "No name",
+              },
+              null,
+              2,
+            ),
+          );
+
+          if (portfolioError.code === "42P01") {
+            console.error(
+              '❌ Table "investment_portfolios" does not exist in your Supabase database',
+            );
+          } else if (portfolioError.code === "PGRST301") {
+            console.error(
+              "❌ RLS is blocking access to investment_portfolios table",
+            );
+          }
+        } else {
+          setPortfolios(portfolioData || []);
+        }
+      } else {
+        // No transactions for this month/year and it's not current period - clear configs
+        setBudgetConfig(null);
+        setPortfolios([]);
+      }
+
       // Fetch transaction history for audit trail
       if (selectedMonth !== undefined && selectedYear !== undefined) {
         const { data: historyData } = await supabase
@@ -382,7 +511,13 @@ export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
     } finally {
       setLoading(false);
     }
-  }, [user, isSupabaseConfigured, selectedMonth, selectedYear]);
+  }, [
+    user,
+    isSupabaseConfigured,
+    selectedMonth,
+    selectedYear,
+    inheritanceMode,
+  ]);
 
   // CRUD Operations for Budget Config
   const saveBudgetConfig = async (
