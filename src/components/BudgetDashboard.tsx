@@ -69,6 +69,7 @@ import { useBudgetData } from "@/hooks/useBudgetData";
 import { useAuth } from "@/hooks/useAuth";
 import SalaryConfig from "./SalaryConfig";
 import InvestmentConfig from "./InvestmentConfig";
+import ConfigurationInheritance from "./ConfigurationInheritance";
 
 interface BudgetAllocation {
   need: number;
@@ -3932,7 +3933,7 @@ const BudgetDashboard = () => {
                                     Want Expenses
                                   </p>
                                   <p className="text-lg font-bold text-warning">
-                                    ₹
+                                    ��
                                     {allTransactions
                                       .filter(
                                         (t) =>
