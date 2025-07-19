@@ -178,98 +178,7 @@ export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
         console.log("✅ Supabase connectivity test passed", testData);
       }
 
-      // Fetch budget config
-      const { data: configData, error: configError } = await supabase
-        .from("budget_configs")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (configError && configError.code !== "PGRST116") {
-        console.error("Error fetching budget config:");
-        console.error(
-          "Full error object:",
-          JSON.stringify(configError, null, 2),
-        );
-        console.error("Error keys:", Object.keys(configError));
-        console.error(
-          "Structured error:",
-          JSON.stringify(
-            {
-              message: configError.message || "No message",
-              details: configError.details || "No details",
-              hint: configError.hint || "No hint",
-              code: configError.code || "No code",
-              name: configError.name || "No name",
-            },
-            null,
-            2,
-          ),
-        );
-
-        // Show helpful error messages for common issues
-        if (configError.code === "42P01") {
-          console.error(
-            '❌ Table "budget_configs" does not exist in your Supabase database',
-          );
-          console.log(
-            "💡 Please run the database migration scripts to create the required tables",
-          );
-        } else if (configError.code === "PGRST301") {
-          console.error(
-            "❌ RLS (Row Level Security) is blocking access to budget_configs table",
-          );
-          console.log(
-            "💡 Please check your RLS policies or disable RLS for development",
-          );
-        }
-      } else {
-        setBudgetConfig(configData);
-      }
-
-      // Fetch investment portfolios
-      const { data: portfolioData, error: portfolioError } = await supabase
-        .from("investment_portfolios")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true });
-
-      if (portfolioError) {
-        console.error("Error fetching portfolios:");
-        console.error(
-          "Full error object:",
-          JSON.stringify(portfolioError, null, 2),
-        );
-        console.error("Error keys:", Object.keys(portfolioError));
-        console.error(
-          "Structured error:",
-          JSON.stringify(
-            {
-              message: portfolioError.message || "No message",
-              details: portfolioError.details || "No details",
-              hint: portfolioError.hint || "No hint",
-              code: portfolioError.code || "No code",
-              name: portfolioError.name || "No name",
-            },
-            null,
-            2,
-          ),
-        );
-
-        if (portfolioError.code === "42P01") {
-          console.error(
-            '❌ Table "investment_portfolios" does not exist in your Supabase database',
-          );
-        } else if (portfolioError.code === "PGRST301") {
-          console.error(
-            "❌ RLS is blocking access to investment_portfolios table",
-          );
-        }
-      } else {
-        setPortfolios(portfolioData || []);
-      }
-
-      // Fetch transactions filtered by month/year if provided
+      // Fetch transactions filtered by month/year if provided - DO THIS FIRST
       let transactionQuery = supabase
         .from("transactions")
         .select("*")
@@ -326,6 +235,117 @@ export function useBudgetData(selectedMonth?: number, selectedYear?: number) {
         }
       } else {
         setTransactions(transactionData || []);
+      }
+
+      // Only fetch budget config and portfolios if we have transactions for the selected month/year
+      const hasTransactionsForPeriod =
+        transactionData && transactionData.length > 0;
+
+      // If no specific month/year is selected, show current configs
+      const shouldShowConfigs =
+        selectedMonth === undefined && selectedYear === undefined;
+
+      // For current month/year (not historical), always show configs to allow configuration
+      const currentDate = new Date();
+      const isCurrentMonthYear =
+        selectedMonth === currentDate.getMonth() &&
+        selectedYear === currentDate.getFullYear();
+
+      if (shouldShowConfigs || isCurrentMonthYear || hasTransactionsForPeriod) {
+        // Fetch budget config
+        const { data: configData, error: configError } = await supabase
+          .from("budget_configs")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
+        if (configError && configError.code !== "PGRST116") {
+          console.error("Error fetching budget config:");
+          console.error(
+            "Full error object:",
+            JSON.stringify(configError, null, 2),
+          );
+          console.error("Error keys:", Object.keys(configError));
+          console.error(
+            "Structured error:",
+            JSON.stringify(
+              {
+                message: configError.message || "No message",
+                details: configError.details || "No details",
+                hint: configError.hint || "No hint",
+                code: configError.code || "No code",
+                name: configError.name || "No name",
+              },
+              null,
+              2,
+            ),
+          );
+
+          // Show helpful error messages for common issues
+          if (configError.code === "42P01") {
+            console.error(
+              '❌ Table "budget_configs" does not exist in your Supabase database',
+            );
+            console.log(
+              "💡 Please run the database migration scripts to create the required tables",
+            );
+          } else if (configError.code === "PGRST301") {
+            console.error(
+              "❌ RLS (Row Level Security) is blocking access to budget_configs table",
+            );
+            console.log(
+              "💡 Please check your RLS policies or disable RLS for development",
+            );
+          }
+        } else {
+          setBudgetConfig(configData);
+        }
+
+        // Fetch investment portfolios
+        const { data: portfolioData, error: portfolioError } = await supabase
+          .from("investment_portfolios")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (portfolioError) {
+          console.error("Error fetching portfolios:");
+          console.error(
+            "Full error object:",
+            JSON.stringify(portfolioError, null, 2),
+          );
+          console.error("Error keys:", Object.keys(portfolioError));
+          console.error(
+            "Structured error:",
+            JSON.stringify(
+              {
+                message: portfolioError.message || "No message",
+                details: portfolioError.details || "No details",
+                hint: portfolioError.hint || "No hint",
+                code: portfolioError.code || "No code",
+                name: portfolioError.name || "No name",
+              },
+              null,
+              2,
+            ),
+          );
+
+          if (portfolioError.code === "42P01") {
+            console.error(
+              '❌ Table "investment_portfolios" does not exist in your Supabase database',
+            );
+          } else if (portfolioError.code === "PGRST301") {
+            console.error(
+              "❌ RLS is blocking access to investment_portfolios table",
+            );
+          }
+        } else {
+          setPortfolios(portfolioData || []);
+        }
+      } else {
+        // No transactions for this month/year and it's not current period - clear configs
+        setBudgetConfig(null);
+        setPortfolios([]);
       }
 
       // Fetch transaction history for audit trail
