@@ -3259,41 +3259,6 @@ const BudgetDashboard = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Stats - Budget Categories */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <QuickStatsCard
-            title="Total Budget"
-            amount={calculatedTotalBudget}
-            icon={Target}
-            variant="default"
-            change={5.2}
-          />
-          <QuickStatsCard
-            title="Need (Essential)"
-            amount={allocatedAmounts.need}
-            icon={Home}
-            variant="destructive"
-          />
-          <QuickStatsCard
-            title="Want (Discretionary)"
-            amount={allocatedAmounts.want}
-            icon={Music}
-            variant="warning"
-          />
-          <QuickStatsCard
-            title="Savings"
-            amount={allocatedAmounts.savings}
-            icon={PiggyBank}
-            variant="success"
-          />
-          <QuickStatsCard
-            title="Investments"
-            amount={allocatedAmounts.investments}
-            icon={TrendingUp}
-            variant="default"
-          />
-        </div>
-
         {/* No Data Message */}
         {!allocatedAmounts.hasData && !budgetConfig && (
           <Card className="border-muted-foreground/20 bg-muted/5 mb-6">
