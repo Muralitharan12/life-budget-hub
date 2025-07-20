@@ -877,9 +877,7 @@ const BudgetDashboard = () => {
                 invested_amount: portfolio.investedAmount || 0,
                 allow_direct_investment: portfolio.allowDirectInvestment,
                 is_active: true,
-              }, {
-                onConflict: 'user_id,profile_name,budget_month,budget_year,name'
-              })
+                            })
               .select();
 
             if (error) {
