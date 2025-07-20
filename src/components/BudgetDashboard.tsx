@@ -769,6 +769,42 @@ const BudgetDashboard = () => {
     }
 
     try {
+            // First, ensure we have a budget period
+      let budgetPeriodId = null;
+
+      const { data: existingPeriod, error: periodError } = await supabase
+        .from('budget_periods')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('budget_month', selectedMonth + 1) // Convert 0-based to 1-based
+        .eq('budget_year', selectedYear)
+        .maybeSingle();
+
+      if (existingPeriod) {
+        budgetPeriodId = existingPeriod.id;
+      } else if (!periodError || periodError.code === 'PGRST116') {
+        // Create new budget period
+        const { data: newPeriod, error: createError } = await supabase
+          .from('budget_periods')
+          .insert({
+            user_id: user.id,
+            budget_month: selectedMonth + 1,
+            budget_year: selectedYear,
+            period_name: `${monthNames[selectedMonth]} ${selectedYear}`,
+            is_active: true,
+          })
+          .select('id')
+          .single();
+
+        if (!createError && newPeriod) {
+          budgetPeriodId = newPeriod.id;
+        }
+      }
+
+      if (!budgetPeriodId) {
+        throw new Error("Could not create or find budget period");
+      }
+
       // Save each portfolio to Supabase
       for (const portfolio of plan.portfolios) {
         try {
@@ -778,6 +814,10 @@ const BudgetDashboard = () => {
             allocation_value: portfolio.allocationValue,
             allocated_amount: portfolio.allocatedAmount,
             allow_direct_investment: portfolio.allowDirectInvestment,
+            profile_name: currentUser === "combined" ? "murali" : currentUser,
+            budget_period_id: budgetPeriodId,
+            budget_month: selectedMonth + 1,
+            budget_year: selectedYear,
             is_active: true,
           });
           console.log(`Saved portfolio: ${portfolio.name}`);
