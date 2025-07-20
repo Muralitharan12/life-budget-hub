@@ -782,8 +782,14 @@ const BudgetDashboard = () => {
     }
 
     try {
-            // First, ensure we have a budget period
+                  // First, ensure we have a budget period
       let budgetPeriodId = null;
+
+      console.log('Looking for budget period:', {
+        user_id: user.id,
+        budget_month: selectedMonth + 1,
+        budget_year: selectedYear
+      });
 
       const { data: existingPeriod, error: periodError } = await supabase
         .from('budget_periods')
@@ -793,10 +799,17 @@ const BudgetDashboard = () => {
         .eq('budget_year', selectedYear)
         .maybeSingle();
 
+      if (periodError && periodError.code !== 'PGRST116') {
+        console.error('Error finding budget period:', periodError);
+        throw new Error(`Failed to find budget period: ${periodError.message}`);
+      }
+
       if (existingPeriod) {
         budgetPeriodId = existingPeriod.id;
-      } else if (!periodError || periodError.code === 'PGRST116') {
+        console.log('Found existing budget period:', budgetPeriodId);
+      } else {
         // Create new budget period
+        console.log('Creating new budget period...');
         const { data: newPeriod, error: createError } = await supabase
           .from('budget_periods')
           .insert({
@@ -809,8 +822,16 @@ const BudgetDashboard = () => {
           .select('id')
           .single();
 
-        if (!createError && newPeriod) {
+        if (createError) {
+          console.error('Error creating budget period:', createError);
+          throw new Error(`Failed to create budget period: ${createError.message}`);
+        }
+
+        if (newPeriod) {
           budgetPeriodId = newPeriod.id;
+          console.log('Created new budget period:', budgetPeriodId);
+        } else {
+          throw new Error("Budget period creation returned no data");
         }
       }
 
