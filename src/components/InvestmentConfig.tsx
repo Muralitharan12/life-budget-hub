@@ -534,20 +534,40 @@ const InvestmentConfig = ({
                 required
               />
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="direct-investment"
-                checked={allowDirectInvestment}
-                onCheckedChange={setAllowDirectInvestment}
-              />
-              <Label htmlFor="direct-investment" className="text-sm">
-                Allow direct investment (skip categories/funds)
-              </Label>
+                        <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="direct-investment"
+                  checked={allowDirectInvestment}
+                  onCheckedChange={(checked) => {
+                    setAllowDirectInvestment(checked as boolean);
+                    if (checked) setSkipCategoriesOnly(false);
+                  }}
+                />
+                <Label htmlFor="direct-investment" className="text-sm">
+                  Allow direct investment (skip categories/funds)
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="skip-categories"
+                  checked={skipCategoriesOnly}
+                  onCheckedChange={(checked) => {
+                    setSkipCategoriesOnly(checked as boolean);
+                    if (checked) setAllowDirectInvestment(false);
+                  }}
+                  disabled={allowDirectInvestment}
+                />
+                <Label htmlFor="skip-categories" className="text-sm">
+                  Skip categories only (direct fund entry)
+                </Label>
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
-              💡 Enable this for simple investments like direct government
-              schemes, gold, or fixed deposits where you don't need to track
-              categories and funds.
+
+            <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg space-y-2">
+              <p>💡 <strong>Direct Investment:</strong> Skip all categorization - ideal for simple investments like government schemes, gold, or fixed deposits.</p>
+              <p>📈 <strong>Skip Categories:</strong> Skip category level but allow direct fund entry - perfect for stock market investments where you want to track individual stocks directly.</p>
             </div>
             <div className="flex justify-end space-x-2">
               <Button
