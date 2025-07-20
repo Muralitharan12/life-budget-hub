@@ -16,10 +16,11 @@ import {
   Edit,
   Trash2,
   Filter,
-  Search,
+    Search,
   UserCheck,
   Eye,
   EyeOff,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -3318,18 +3319,24 @@ const BudgetDashboard = () => {
               icon={PiggyBank}
               variant="success"
             />
-            <QuickStatsCard
+                        <QuickStatsCard
               title="Investments"
               amount={allocatedAmounts.investments}
               icon={TrendingUp}
               variant="default"
+            />
+            <QuickStatsCard
+              title="Unplanned"
+              amount={categorySpending.unplanned}
+              icon={AlertTriangle}
+              variant="secondary"
             />
           </div>
         )}
 
         {/* Main Navigation Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-muted p-1 rounded-lg">
+                    <TabsList className="grid w-full grid-cols-8 bg-muted p-1 rounded-lg">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -3342,9 +3349,13 @@ const BudgetDashboard = () => {
               <Music className="h-4 w-4" />
               <span className="hidden sm:inline">Want</span>
             </TabsTrigger>
-            <TabsTrigger value="savings" className="flex items-center gap-2">
+                        <TabsTrigger value="savings" className="flex items-center gap-2">
               <PiggyBank className="h-4 w-4" />
               <span className="hidden sm:inline">Savings</span>
+            </TabsTrigger>
+            <TabsTrigger value="unplanned" className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="hidden sm:inline">Unplanned</span>
             </TabsTrigger>
             <TabsTrigger
               value="investments"
@@ -3514,12 +3525,19 @@ const BudgetDashboard = () => {
                   spent={categorySpending.savings}
                   variant="savings"
                 />
-                <CategoryProgressCard
+                                <CategoryProgressCard
                   title="Investments"
                   icon={TrendingUp}
                   allocated={allocatedAmounts.investments}
                   spent={totalInvestmentSpent}
                   variant="investments"
+                />
+                <CategoryProgressCard
+                  title="Unplanned"
+                  icon={AlertTriangle}
+                  allocated={0}
+                  spent={categorySpending.unplanned}
+                  variant="unplanned"
                 />
               </div>
 
@@ -3557,7 +3575,7 @@ const BudgetDashboard = () => {
                         ₹{totalSpent.toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Need + Want + Savings + Investments
+                                                Need + Want + Savings + Investments + Unplanned
                       </p>
                     </div>
                     <div className="text-center p-4 bg-background/50 rounded-lg">
