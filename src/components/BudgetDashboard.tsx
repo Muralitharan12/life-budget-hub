@@ -76,6 +76,7 @@ interface BudgetAllocation {
   want: number;
   savings: number;
   investments: number;
+  unplanned: number;
 }
 
 interface CategorySpending {
@@ -83,6 +84,7 @@ interface CategorySpending {
   want: number;
   savings: number;
   investments: number;
+  unplanned: number;
 }
 
 interface Fund {
