@@ -226,9 +226,15 @@ const TAG_COLORS = {
   "Fixed Deposit": "bg-lime-100 text-lime-800 border-lime-200",
   "Savings Account": "bg-green-100 text-green-800 border-green-200",
   "Mutual Funds": "bg-blue-100 text-blue-800 border-blue-200",
-  PPF: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    PPF: "bg-indigo-100 text-indigo-800 border-indigo-200",
   Stocks: "bg-purple-100 text-purple-800 border-purple-200",
   SIP: "bg-pink-100 text-pink-800 border-pink-200",
+  "Medical Emergency": "bg-red-100 text-red-800 border-red-200",
+  "Car Repair": "bg-orange-100 text-orange-800 border-orange-200",
+  "Home Repair": "bg-yellow-100 text-yellow-800 border-yellow-200",
+  "Sent to Valar": "bg-blue-100 text-blue-800 border-blue-200",
+  "Sent to Murali": "bg-green-100 text-green-800 border-green-200",
+  "Unexpected Travel": "bg-purple-100 text-purple-800 border-purple-200",
 };
 
 const BudgetDashboard = () => {
