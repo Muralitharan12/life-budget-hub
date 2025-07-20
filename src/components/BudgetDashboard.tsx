@@ -834,8 +834,31 @@ const BudgetDashboard = () => {
         }
       }
 
-            if (!budgetPeriodId) {
+                  if (!budgetPeriodId) {
         console.warn("Could not create budget period, trying without budget_period_id");
+
+        // Clear existing portfolios for this user/profile/period to avoid duplicates
+        const profileName = currentUser === "combined" ? "murali" : currentUser;
+        console.log('Clearing existing portfolios for:', { profileName, month: selectedMonth + 1, year: selectedYear });
+
+        try {
+          const { error: deleteError } = await supabase
+            .from('investment_portfolios')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('profile_name', profileName)
+            .eq('budget_month', selectedMonth + 1)
+            .eq('budget_year', selectedYear);
+
+          if (deleteError) {
+            console.warn('Error clearing existing portfolios:', deleteError);
+          } else {
+            console.log('Successfully cleared existing portfolios');
+          }
+        } catch (clearError) {
+          console.warn('Failed to clear existing portfolios:', clearError);
+        }
+
         // Fallback: try to save portfolios without budget_period_id
         // This might work if the database allows NULL budget_period_id
         for (const portfolio of plan.portfolios) {
