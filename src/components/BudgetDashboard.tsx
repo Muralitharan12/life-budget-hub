@@ -835,29 +835,50 @@ const BudgetDashboard = () => {
         }
       }
 
-      if (!budgetPeriodId) {
-        throw new Error("Could not create or find budget period");
-      }
-
-      // Save each portfolio to Supabase
-      for (const portfolio of plan.portfolios) {
-        try {
-          await saveInvestmentPortfolio({
-            name: portfolio.name,
-            allocation_type: portfolio.allocationType,
-            allocation_value: portfolio.allocationValue,
-            allocated_amount: portfolio.allocatedAmount,
-            allow_direct_investment: portfolio.allowDirectInvestment,
-            profile_name: currentUser === "combined" ? "murali" : currentUser,
-            budget_period_id: budgetPeriodId,
-            budget_month: selectedMonth + 1,
-            budget_year: selectedYear,
-            is_active: true,
-          });
-          console.log(`Saved portfolio: ${portfolio.name}`);
-        } catch (error) {
-          console.warn("Failed to save portfolio:", portfolio.name, error);
-          throw error; // Re-throw to trigger the catch below
+            if (!budgetPeriodId) {
+        console.warn("Could not create budget period, trying without budget_period_id");
+        // Fallback: try to save portfolios without budget_period_id
+        // This might work if the database allows NULL budget_period_id
+        for (const portfolio of plan.portfolios) {
+          try {
+            await saveInvestmentPortfolio({
+              name: portfolio.name,
+              allocation_type: portfolio.allocationType,
+              allocation_value: portfolio.allocationValue,
+              allocated_amount: portfolio.allocatedAmount,
+              allow_direct_investment: portfolio.allowDirectInvestment,
+              profile_name: currentUser === "combined" ? "murali" : currentUser,
+              budget_month: selectedMonth + 1,
+              budget_year: selectedYear,
+              is_active: true,
+            });
+            console.log(`Saved portfolio without budget period: ${portfolio.name}`);
+          } catch (error) {
+            console.error("Failed to save portfolio:", portfolio.name, error);
+            throw new Error(`Failed to save portfolio "${portfolio.name}": ${error.message}`);
+          }
+        }
+      } else {
+        // Save each portfolio to Supabase with budget_period_id
+        for (const portfolio of plan.portfolios) {
+          try {
+            await saveInvestmentPortfolio({
+              name: portfolio.name,
+              allocation_type: portfolio.allocationType,
+              allocation_value: portfolio.allocationValue,
+              allocated_amount: portfolio.allocatedAmount,
+              allow_direct_investment: portfolio.allowDirectInvestment,
+              profile_name: currentUser === "combined" ? "murali" : currentUser,
+              budget_period_id: budgetPeriodId,
+              budget_month: selectedMonth + 1,
+              budget_year: selectedYear,
+              is_active: true,
+            });
+            console.log(`Saved portfolio: ${portfolio.name}`);
+          } catch (error) {
+            console.warn("Failed to save portfolio:", portfolio.name, error);
+            throw error; // Re-throw to trigger the catch below
+          }
         }
       }
 
@@ -1643,7 +1664,7 @@ const BudgetDashboard = () => {
               </div>
               {isOverBudget && (
                 <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-                  Over budget by ₹{(spent - allocated).toLocaleString()}
+                  Over budget by ��{(spent - allocated).toLocaleString()}
                 </div>
               )}
             </>
