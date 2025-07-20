@@ -559,7 +559,7 @@ const BudgetDashboard = () => {
       });
     }
 
-    // Calculate expenses by category
+        // Calculate expenses by category
     const expensesByCategory = {
       need: currentMonthExpenses
         .filter((e) => e.category === "need")
@@ -573,9 +573,12 @@ const BudgetDashboard = () => {
       investments: currentMonthExpenses
         .filter((e) => e.category === "investments")
         .reduce((sum, e) => sum + e.amount, 0),
+      unplanned: currentMonthExpenses
+        .filter((e) => e.category === "unplanned")
+        .reduce((sum, e) => sum + e.amount, 0),
     };
 
-    // Calculate refunds by category
+        // Calculate refunds by category
     const refundsByCategory = {
       need: currentMonthRefunds
         .filter((r) => r.category === "need")
@@ -589,9 +592,12 @@ const BudgetDashboard = () => {
       investments: currentMonthRefunds
         .filter((r) => r.category === "investments")
         .reduce((sum, r) => sum + r.amount, 0),
+      unplanned: currentMonthRefunds
+        .filter((r) => r.category === "unplanned")
+        .reduce((sum, r) => sum + r.amount, 0),
     };
 
-    // Return net spending (expenses minus refunds)
+        // Return net spending (expenses minus refunds)
     return {
       need: Math.max(0, expensesByCategory.need - refundsByCategory.need),
       want: Math.max(0, expensesByCategory.want - refundsByCategory.want),
@@ -602,6 +608,10 @@ const BudgetDashboard = () => {
       investments: Math.max(
         0,
         expensesByCategory.investments - refundsByCategory.investments,
+      ),
+      unplanned: Math.max(
+        0,
+        expensesByCategory.unplanned - refundsByCategory.unplanned,
       ),
     };
   };
