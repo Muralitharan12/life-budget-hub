@@ -408,11 +408,12 @@ const InvestmentConfig = ({
     onSave,
   }: {
     portfolio?: Portfolio;
-    onSave: (
+        onSave: (
       name: string,
       allocationType: "percentage" | "amount",
       allocationValue: number,
       allowDirectInvestment: boolean,
+      skipCategoriesOnly: boolean,
     ) => void;
   }) => {
     const [open, setOpen] = useState(false);
@@ -421,15 +422,17 @@ const InvestmentConfig = ({
       "percentage" | "amount"
     >("percentage");
     const [allocationValue, setAllocationValue] = useState("");
-    const [allowDirectInvestment, setAllowDirectInvestment] = useState(false);
+        const [allowDirectInvestment, setAllowDirectInvestment] = useState(false);
+    const [skipCategoriesOnly, setSkipCategoriesOnly] = useState(false);
 
     // Initialize form data when dialog opens
     useEffect(() => {
       if (open && portfolio) {
         setName(portfolio.name);
         setAllocationType(portfolio.allocationType);
-        setAllocationValue(portfolio.allocationValue.toString());
+                setAllocationValue(portfolio.allocationValue.toString());
         setAllowDirectInvestment(portfolio.allowDirectInvestment);
+        setSkipCategoriesOnly(portfolio.skipCategoriesOnly || false);
       } else if (open && !portfolio) {
         setName("");
         setAllocationType("percentage");
