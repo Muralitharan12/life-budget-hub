@@ -1208,7 +1208,7 @@ const InvestmentConfig = ({
                         )}
                       </>
                     )}
-                    {portfolio.allowDirectInvestment && (
+                                        {portfolio.allowDirectInvestment && (
                       <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
@@ -1228,6 +1228,120 @@ const InvestmentConfig = ({
                               No subcategories needed
                             </p>
                           </div>
+                        </div>
+                      </div>
+                    )}
+                    {portfolio.skipCategoriesOnly && (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h5 className="font-medium text-orange-800">
+                                Direct Fund Entry Portfolio
+                              </h5>
+                              <p className="text-sm text-orange-700">
+                                Skip categories and add funds directly - perfect for stock market investments.
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs text-orange-600">
+                                Fund Level
+                              </span>
+                              <p className="text-sm font-bold text-orange-800">
+                                Direct fund tracking
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-medium">Direct Funds</h5>
+                            <FundDialog
+                              portfolioId={portfolio.id}
+                              categoryId="direct"
+                              onSave={(name) =>
+                                addFund(portfolio.id, "direct", name)
+                              }
+                            />
+                          </div>
+
+                          {(!portfolio.categories.length || !portfolio.categories.find(c => c.id === "direct")?.funds?.length) ? (
+                            <div className="text-center py-4 text-muted-foreground text-sm">
+                              No funds added yet
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {portfolio.categories.find(c => c.id === "direct")?.funds?.map((fund) => (
+                                <div
+                                  key={fund.id}
+                                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                                >
+                                  <div>
+                                    <p className="font-medium text-sm">
+                                      {fund.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Direct fund entry
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <FundDialog
+                                      portfolioId={portfolio.id}
+                                      categoryId="direct"
+                                      fund={fund}
+                                      onSave={(name) =>
+                                        updateFund(
+                                          portfolio.id,
+                                          "direct",
+                                          fund.id,
+                                          name,
+                                        )
+                                      }
+                                    />
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>
+                                            Delete Fund
+                                          </AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to
+                                            delete "{fund.name}"?
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>
+                                            Cancel
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() =>
+                                              deleteFund(
+                                                portfolio.id,
+                                                "direct",
+                                                fund.id,
+                                              )
+                                            }
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </div>
+                              )) || []}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
