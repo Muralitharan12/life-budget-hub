@@ -998,8 +998,8 @@ const InvestmentConfig = ({
                       </div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {!portfolio.allowDirectInvestment && (
+                                    <CardContent className="space-y-4">
+                    {!portfolio.allowDirectInvestment && !portfolio.skipCategoriesOnly && (
                       <>
                         <div className="flex items-center justify-between">
                           <h5 className="font-medium">Categories</h5>
