@@ -880,18 +880,20 @@ const InvestmentConfig = ({
                 Manage your investment portfolios and their allocations
               </p>
             </div>
-            <PortfolioDialog
+                        <PortfolioDialog
               onSave={(
                 name,
                 allocationType,
                 allocationValue,
                 allowDirectInvestment,
+                skipCategoriesOnly,
               ) =>
                 addPortfolio(
                   name,
                   allocationType,
                   allocationValue,
                   allowDirectInvestment,
+                  skipCategoriesOnly,
                 )
               }
             />
@@ -947,11 +949,12 @@ const InvestmentConfig = ({
                       <div className="flex items-center space-x-2">
                         <PortfolioDialog
                           portfolio={portfolio}
-                          onSave={(
+                                                    onSave={(
                             name,
                             allocationType,
                             allocationValue,
                             allowDirectInvestment,
+                            skipCategoriesOnly,
                           ) =>
                             updatePortfolio(
                               portfolio.id,
@@ -959,6 +962,7 @@ const InvestmentConfig = ({
                               allocationType,
                               allocationValue,
                               allowDirectInvestment,
+                              skipCategoriesOnly,
                             )
                           }
                         />
