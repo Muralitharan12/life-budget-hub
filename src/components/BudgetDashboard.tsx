@@ -16,10 +16,11 @@ import {
   Edit,
   Trash2,
   Filter,
-  Search,
+    Search,
   UserCheck,
   Eye,
   EyeOff,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useBudgetData } from "@/hooks/useBudgetData";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import SalaryConfig from "./SalaryConfig";
 import InvestmentConfig from "./InvestmentConfig";
 import ConfigurationInheritance from "./ConfigurationInheritance";
@@ -76,6 +78,7 @@ interface BudgetAllocation {
   want: number;
   savings: number;
   investments: number;
+  unplanned: number;
 }
 
 interface CategorySpending {
@@ -83,6 +86,7 @@ interface CategorySpending {
   want: number;
   savings: number;
   investments: number;
+  unplanned: number;
 }
 
 interface Fund {
@@ -134,7 +138,7 @@ interface ExpenseEntry {
   spentFor: string;
   amount: number;
   notes: string;
-  category: "need" | "want" | "savings" | "investments";
+    category: "need" | "want" | "savings" | "investments" | "unplanned";
   tag?: string;
   paymentType?: "SENT BY ME" | "SENT TO VALAR" | "SENT TO MURALI";
 }
@@ -151,7 +155,7 @@ interface RefundEntry {
   refundFor: string;
   amount: number;
   notes: string;
-  category: "need" | "want" | "savings" | "investments";
+    category: "need" | "want" | "savings" | "investments" | "unplanned";
   tag?: string;
   originalExpenseId?: string;
 }
@@ -193,6 +197,15 @@ const DEFAULT_TAGS = {
   ],
   savings: ["Emergency Fund", "Fixed Deposit", "Others", "Savings Account"],
   investments: ["Mutual Funds", "Others", "PPF", "Stocks", "SIP"],
+  unplanned: [
+    "Medical Emergency",
+    "Car Repair",
+    "Home Repair",
+    "Sent to Valar",
+    "Sent to Murali",
+    "Unexpected Travel",
+    "Others",
+  ],
 };
 
 const TAG_COLORS = {
@@ -214,9 +227,15 @@ const TAG_COLORS = {
   "Fixed Deposit": "bg-lime-100 text-lime-800 border-lime-200",
   "Savings Account": "bg-green-100 text-green-800 border-green-200",
   "Mutual Funds": "bg-blue-100 text-blue-800 border-blue-200",
-  PPF: "bg-indigo-100 text-indigo-800 border-indigo-200",
+    PPF: "bg-indigo-100 text-indigo-800 border-indigo-200",
   Stocks: "bg-purple-100 text-purple-800 border-purple-200",
   SIP: "bg-pink-100 text-pink-800 border-pink-200",
+  "Medical Emergency": "bg-red-100 text-red-800 border-red-200",
+  "Car Repair": "bg-orange-100 text-orange-800 border-orange-200",
+  "Home Repair": "bg-yellow-100 text-yellow-800 border-yellow-200",
+  "Sent to Valar": "bg-blue-100 text-blue-800 border-blue-200",
+  "Sent to Murali": "bg-green-100 text-green-800 border-green-200",
+  "Unexpected Travel": "bg-purple-100 text-purple-800 border-purple-200",
 };
 
 const BudgetDashboard = () => {
@@ -254,7 +273,7 @@ const BudgetDashboard = () => {
       partnerName: "Valar",
       salary: 0,
       budgetPercentage: 0,
-      budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0 },
+        budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0, unplanned: 0 },
       expenses: [],
       customTags: [],
       investmentPlan: { portfolios: [] },
@@ -267,7 +286,7 @@ const BudgetDashboard = () => {
       partnerName: "Murali",
       salary: 0,
       budgetPercentage: 0,
-      budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0 },
+        budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0, unplanned: 0 },
       expenses: [],
       customTags: [],
       investmentPlan: { portfolios: [] },
@@ -292,7 +311,19 @@ const BudgetDashboard = () => {
         },
         expenses: supabaseTransactions.filter((t) => t.type === "expense"),
         customTags: [],
-        investmentPlan: { portfolios: portfolios || [] },
+                investmentPlan: {
+          portfolios: (portfolios || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            allocationType: p.allocation_type,
+            allocationValue: p.allocation_value,
+            allocatedAmount: p.allocated_amount,
+            investedAmount: p.invested_amount,
+            allowDirectInvestment: p.allow_direct_investment,
+            skipCategoriesOnly: false, // Default value since not in DB yet
+            categories: [], // Categories will need to be loaded separately
+          }))
+        },
         investmentEntries: supabaseTransactions.filter(
           (t) => t.type === "investment",
         ),
@@ -304,7 +335,7 @@ const BudgetDashboard = () => {
         partnerName: "",
         salary: 0,
         budgetPercentage: 0,
-        budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0 },
+          budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0, unplanned: 0 },
         expenses: [],
         customTags: [],
         investmentPlan: { portfolios: [] },
@@ -353,8 +384,8 @@ const BudgetDashboard = () => {
       if (budgetConfig && (budgetConfig.monthly_salary > 0 || budgetConfig.budget_percentage > 0)) {
         return true;
       }
-      // For localStorage users, check if they have valid profile data
-      if (currentProfile.salary > 0 && currentProfile.budgetPercentage > 0) {
+            // Check if the user has valid configuration data
+      if (budgetConfig && budgetConfig.monthly_salary > 0 && budgetConfig.budget_percentage > 0) {
         return true;
       }
       return false;
@@ -371,7 +402,7 @@ const BudgetDashboard = () => {
       });
     }
 
-    // For localStorage data, check if we have expenses or transactions
+        // For combined view, aggregate data from all profiles
     if (currentUser === "combined") {
       const hasExpenses = [
         ...profiles.murali.expenses,
@@ -556,7 +587,7 @@ const BudgetDashboard = () => {
       });
     }
 
-    // Calculate expenses by category
+        // Calculate expenses by category
     const expensesByCategory = {
       need: currentMonthExpenses
         .filter((e) => e.category === "need")
@@ -570,9 +601,12 @@ const BudgetDashboard = () => {
       investments: currentMonthExpenses
         .filter((e) => e.category === "investments")
         .reduce((sum, e) => sum + e.amount, 0),
+      unplanned: currentMonthExpenses
+        .filter((e) => e.category === "unplanned")
+        .reduce((sum, e) => sum + e.amount, 0),
     };
 
-    // Calculate refunds by category
+        // Calculate refunds by category
     const refundsByCategory = {
       need: currentMonthRefunds
         .filter((r) => r.category === "need")
@@ -586,9 +620,12 @@ const BudgetDashboard = () => {
       investments: currentMonthRefunds
         .filter((r) => r.category === "investments")
         .reduce((sum, r) => sum + r.amount, 0),
+      unplanned: currentMonthRefunds
+        .filter((r) => r.category === "unplanned")
+        .reduce((sum, r) => sum + r.amount, 0),
     };
 
-    // Return net spending (expenses minus refunds)
+        // Return net spending (expenses minus refunds)
     return {
       need: Math.max(0, expensesByCategory.need - refundsByCategory.need),
       want: Math.max(0, expensesByCategory.want - refundsByCategory.want),
@@ -599,6 +636,10 @@ const BudgetDashboard = () => {
       investments: Math.max(
         0,
         expensesByCategory.investments - refundsByCategory.investments,
+      ),
+      unplanned: Math.max(
+        0,
+        expensesByCategory.unplanned - refundsByCategory.unplanned,
       ),
     };
   };
@@ -675,13 +716,22 @@ const BudgetDashboard = () => {
     investmentAmounts.portfolioInvested.values(),
   ).reduce((sum, amount) => sum + amount, 0);
 
-  // Updated total spent calculation: sum of all category spending with new investment tracking
+    // Updated total spent calculation: sum of all category spending with new investment tracking
+  // Note: unplanned spending is included in total spent for tracking but not in budget calculations
   const totalSpent =
     categorySpending.need +
     categorySpending.want +
     categorySpending.savings +
+    totalInvestmentSpent +
+    categorySpending.unplanned;
+
+  // Budget calculations exclude unplanned spending as it's outside planned budget
+  const totalPlannedSpent =
+    categorySpending.need +
+    categorySpending.want +
+    categorySpending.savings +
     totalInvestmentSpent;
-  const totalRemaining = calculatedTotalBudget - totalSpent;
+  const totalRemaining = calculatedTotalBudget - totalPlannedSpent;
 
   const handleSalaryUpdate = async (
     salary: number,
@@ -721,16 +771,226 @@ const BudgetDashboard = () => {
     }
   };
 
-  const handleInvestmentPlanUpdate = (plan: InvestmentPlan) => {
-    const updatedProfiles = {
-      ...profiles,
-      [currentUser]: {
-        ...profiles[currentUser],
-        investmentPlan: plan,
-      },
-    };
+    const handleInvestmentPlanUpdate = async (plan: InvestmentPlan) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save your investment plan.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    saveProfiles(updatedProfiles);
+    try {
+                  // First, ensure we have a budget period
+      let budgetPeriodId = null;
+
+      console.log('Looking for budget period:', {
+        user_id: user.id,
+        budget_month: selectedMonth + 1,
+        budget_year: selectedYear
+      });
+
+      const { data: existingPeriod, error: periodError } = await supabase
+        .from('budget_periods')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('budget_month', selectedMonth + 1) // Convert 0-based to 1-based
+        .eq('budget_year', selectedYear)
+        .maybeSingle();
+
+      if (periodError && periodError.code !== 'PGRST116') {
+        console.error('Error finding budget period:', periodError);
+        throw new Error(`Failed to find budget period: ${periodError.message}`);
+      }
+
+      if (existingPeriod) {
+        budgetPeriodId = existingPeriod.id;
+        console.log('Found existing budget period:', budgetPeriodId);
+      } else {
+        // Create new budget period
+        console.log('Creating new budget period...');
+                const { data: newPeriod, error: createError } = await supabase
+          .from('budget_periods')
+          .insert({
+            user_id: user.id,
+            budget_month: selectedMonth + 1,
+            budget_year: selectedYear,
+            is_active: true,
+          })
+          .select('id')
+          .single();
+
+        if (createError) {
+          console.error('Error creating budget period:', createError);
+          throw new Error(`Failed to create budget period: ${createError.message}`);
+        }
+
+        if (newPeriod) {
+          budgetPeriodId = newPeriod.id;
+          console.log('Created new budget period:', budgetPeriodId);
+        } else {
+          throw new Error("Budget period creation returned no data");
+        }
+      }
+
+                  if (!budgetPeriodId) {
+        console.warn("Could not create budget period, trying without budget_period_id");
+
+        // Clear existing portfolios for this user/profile/period to avoid duplicates
+        const profileName = currentUser === "combined" ? "murali" : currentUser;
+        console.log('Clearing existing portfolios for:', { profileName, month: selectedMonth + 1, year: selectedYear });
+
+        try {
+          const { error: deleteError } = await supabase
+            .from('investment_portfolios')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('profile_name', profileName)
+            .eq('budget_month', selectedMonth + 1)
+            .eq('budget_year', selectedYear);
+
+          if (deleteError) {
+            console.warn('Error clearing existing portfolios:', deleteError);
+          } else {
+            console.log('Successfully cleared existing portfolios');
+          }
+        } catch (clearError) {
+          console.warn('Failed to clear existing portfolios:', clearError);
+        }
+
+        // Fallback: try to save portfolios without budget_period_id
+        // This might work if the database allows NULL budget_period_id
+                for (const portfolio of plan.portfolios) {
+          try {
+            const { data, error } = await supabase
+              .from('investment_portfolios')
+              .upsert({
+                user_id: user.id,
+                profile_name: profileName,
+                budget_month: selectedMonth + 1,
+                budget_year: selectedYear,
+                name: portfolio.name,
+                allocation_type: portfolio.allocationType,
+                allocation_value: portfolio.allocationValue,
+                allocated_amount: portfolio.allocatedAmount,
+                invested_amount: portfolio.investedAmount || 0,
+                allow_direct_investment: portfolio.allowDirectInvestment,
+                is_active: true,
+                            })
+              .select();
+
+            if (error) {
+              throw error;
+            }
+            console.log(`Upserted portfolio without budget period: ${portfolio.name}`);
+          } catch (error) {
+            console.error("Failed to upsert portfolio:", portfolio.name, error);
+            let errorMsg = "Unknown error";
+            if (error instanceof Error) {
+              errorMsg = error.message;
+            } else if (error && typeof error === 'object' && error.message) {
+              errorMsg = error.message;
+            }
+            throw new Error(`Failed to save portfolio "${portfolio.name}": ${errorMsg}`);
+          }
+        }
+            } else {
+        // Clear existing portfolios for this user/profile/period to avoid duplicates
+        const profileName = currentUser === "combined" ? "murali" : currentUser;
+        console.log('Clearing existing portfolios for:', { profileName, budgetPeriodId, month: selectedMonth + 1, year: selectedYear });
+
+        try {
+          const { error: deleteError } = await supabase
+            .from('investment_portfolios')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('profile_name', profileName)
+            .eq('budget_period_id', budgetPeriodId)
+            .eq('budget_month', selectedMonth + 1)
+            .eq('budget_year', selectedYear);
+
+          if (deleteError) {
+            console.warn('Error clearing existing portfolios:', deleteError);
+          } else {
+            console.log('Successfully cleared existing portfolios');
+          }
+        } catch (clearError) {
+          console.warn('Failed to clear existing portfolios:', clearError);
+        }
+
+                // Use direct Supabase upsert with budget_period_id to handle conflicts
+        for (const portfolio of plan.portfolios) {
+          try {
+            const { data, error } = await supabase
+              .from('investment_portfolios')
+              .upsert({
+                user_id: user.id,
+                profile_name: profileName,
+                budget_period_id: budgetPeriodId,
+                budget_month: selectedMonth + 1,
+                budget_year: selectedYear,
+                name: portfolio.name,
+                allocation_type: portfolio.allocationType,
+                allocation_value: portfolio.allocationValue,
+                allocated_amount: portfolio.allocatedAmount,
+                invested_amount: portfolio.investedAmount || 0,
+                allow_direct_investment: portfolio.allowDirectInvestment,
+                is_active: true,
+                            })
+              .select();
+
+            if (error) {
+              throw error;
+            }
+            console.log(`Upserted portfolio with budget period: ${portfolio.name}`);
+          } catch (error) {
+            console.warn("Failed to upsert portfolio:", portfolio.name, error);
+            let errorMsg = "Unknown error";
+            if (error instanceof Error) {
+              errorMsg = error.message;
+            } else if (error && typeof error === 'object' && error.message) {
+              errorMsg = error.message;
+            }
+            throw new Error(`Failed to save portfolio "${portfolio.name}": ${errorMsg}`);
+          }
+        }
+      }
+
+      // Refresh data to show the saved portfolios
+      await refetch();
+
+      toast({
+        title: "Investment Plan Saved",
+        description: `Successfully saved ${plan.portfolios.length} portfolios to your account.`,
+      });
+        } catch (error) {
+      console.error("Error saving investment plan:", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Failed to save investment plan. Please try again.";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object') {
+        // Handle Supabase error format
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.error_description) {
+          errorMessage = error.error_description;
+        } else if (error.details) {
+          errorMessage = error.details;
+        } else {
+          errorMessage = JSON.stringify(error);
+        }
+      }
+
+      toast({
+        title: "Save Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleConfigurationsInherited = async (configurations: {
@@ -770,8 +1030,8 @@ const BudgetDashboard = () => {
               console.warn("Failed to save portfolio:", portfolio.name, error);
             }
           }
-        } else {
-          // For localStorage users
+                } else {
+          // For Supabase users
           handleInvestmentPlanUpdate(configurations.investmentPlan);
         }
       }
@@ -805,59 +1065,13 @@ const BudgetDashboard = () => {
     }
   }, [selectedMonth, selectedYear, user]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("budgetProfiles");
-    if (saved) {
-      const loadedProfiles = JSON.parse(saved);
+  
 
-      // Add backward compatibility for portfolios without allowDirectInvestment field
-      Object.keys(loadedProfiles).forEach((userKey) => {
-        if (loadedProfiles[userKey].investmentPlan?.portfolios) {
-          loadedProfiles[userKey].investmentPlan.portfolios = loadedProfiles[
-            userKey
-          ].investmentPlan.portfolios.map((portfolio: any) => ({
-            ...portfolio,
-            allowDirectInvestment: portfolio.allowDirectInvestment ?? false,
-            investedAmount: portfolio.investedAmount ?? 0,
-            categories:
-              portfolio.categories?.map((category: any) => ({
-                ...category,
-                investedAmount: category.investedAmount ?? 0,
-                funds:
-                  category.funds?.map((fund: any) => ({
-                    ...fund,
-                    investedAmount: fund.investedAmount ?? 0,
-                  })) || [],
-              })) || [],
-          }));
-        }
-
-        // Add backward compatibility for investmentEntries
-        if (!loadedProfiles[userKey].investmentEntries) {
-          loadedProfiles[userKey].investmentEntries = [];
-        }
-
-        // Add backward compatibility for bankBalances
-        if (!loadedProfiles[userKey].bankBalances) {
-          loadedProfiles[userKey].bankBalances = [];
-        }
-
-        // Add backward compatibility for refunds
-        if (!loadedProfiles[userKey].refunds) {
-          loadedProfiles[userKey].refunds = [];
-        }
-      });
-
-      setProfiles(loadedProfiles);
-    }
-  }, []);
-
-  const saveProfiles = (newProfiles: typeof profiles) => {
+    const saveProfiles = (newProfiles: typeof profiles) => {
     setProfiles(newProfiles);
-    localStorage.setItem("budgetProfiles", JSON.stringify(newProfiles));
   };
 
-  const addExpense = (
+    const addExpense = async (
     category: string,
     spentFor: string,
     amount: number,
@@ -875,40 +1089,49 @@ const BudgetDashboard = () => {
       return;
     }
 
-    const newExpense: ExpenseEntry = {
-      id: Date.now().toString(),
-      date: selectedDate,
-      spentFor,
-      amount,
-      notes,
-      category: category as "need" | "want" | "savings" | "investments",
-      tag,
-      paymentType: paymentType as
-        | "SENT BY ME"
-        | "SENT TO VALAR"
-        | "SENT TO MURALI",
-    };
-
-    const updatedProfiles = {
-      ...profiles,
-      [currentUser]: {
-        ...profiles[currentUser],
-        expenses: [...profiles[currentUser].expenses, newExpense],
-      },
-    };
-
-    saveProfiles(updatedProfiles);
-
-    // Auto-switch to the month of the added expense
-    const expenseMonth = new Date(selectedDate).getMonth();
-    if (expenseMonth !== selectedMonth) {
-      setSelectedMonth(expenseMonth);
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to add expenses.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    toast({
-      title: "Expense Added",
-      description: `Added ₹${amount} for ${spentFor}`,
-    });
+    try {
+      await addTransaction({
+        type: "expense",
+        category: category as "need" | "want" | "savings" | "investments" | "unplanned",
+        amount: amount,
+        description: spentFor,
+        notes: notes,
+        transaction_date: selectedDate,
+        tag: tag,
+        payment_type: paymentType === "SENT BY ME" ? "upi" :
+                     paymentType === "SENT TO VALAR" ? "upi" :
+                     paymentType === "SENT TO MURALI" ? "upi" : "cash",
+        spent_for: spentFor,
+        status: "active",
+      });
+
+      // Auto-switch to the month of the added expense
+      const expenseMonth = new Date(selectedDate).getMonth();
+      if (expenseMonth !== selectedMonth) {
+        setSelectedMonth(expenseMonth);
+      }
+
+      toast({
+        title: "Expense Added",
+        description: `Added ₹${amount} for ${spentFor}`,
+      });
+    } catch (error) {
+      console.error("Error adding expense:", error);
+      toast({
+        title: "Failed to Add Expense",
+        description: "There was an error adding your expense. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const updateExpense = (
@@ -1207,9 +1430,43 @@ const BudgetDashboard = () => {
     });
   };
 
-  const getTagsForCategory = (category: string) => {
-    const defaultTags =
+    const getTagsForCategory = (category: string) => {
+    let defaultTags =
       DEFAULT_TAGS[category as keyof typeof DEFAULT_TAGS] || [];
+
+    // For unplanned category, provide profile-specific tags
+    if (category === "unplanned") {
+      if (currentUser === "murali") {
+        defaultTags = [
+          "Medical Emergency",
+          "Car Repair",
+          "Home Repair",
+          "Sent to Valar",
+          "Unexpected Travel",
+          "Others",
+        ];
+      } else if (currentUser === "valar") {
+        defaultTags = [
+          "Medical Emergency",
+          "Car Repair",
+          "Home Repair",
+          "Sent to Murali",
+          "Unexpected Travel",
+          "Others",
+        ];
+      } else {
+        // Combined view shows both options
+        defaultTags = [
+          "Medical Emergency",
+          "Car Repair",
+          "Home Repair",
+          "Sent to Valar",
+          "Sent to Murali",
+          "Unexpected Travel",
+          "Others",
+        ];
+      }
+    }
 
     let customTags = [];
     if (currentUser === "combined") {
@@ -1424,18 +1681,19 @@ const BudgetDashboard = () => {
     allocated: number;
     spent: number;
     variant?: string;
-  }) => {
+    }) => {
     const remaining = allocated - spent;
     const progressPercentage =
       allocated > 0 ? Math.min((spent / allocated) * 100, 100) : 0;
-    const isOverBudget = spent > allocated;
+    const isOverBudget = spent > allocated && allocated > 0;
+    const isUnplanned = variant === "unplanned";
 
     return (
       <Card className="shadow-card">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Icon
+                            <Icon
                 className={`h-5 w-5 ${
                   variant === "need"
                     ? "text-destructive"
@@ -1445,7 +1703,9 @@ const BudgetDashboard = () => {
                         ? "text-success"
                         : variant === "investments"
                           ? "text-primary"
-                          : "text-muted-foreground"
+                          : variant === "unplanned"
+                            ? "text-orange-600"
+                            : "text-muted-foreground"
                 }`}
               />
               <span className="text-sm font-medium">{title}</span>
@@ -1455,39 +1715,53 @@ const BudgetDashboard = () => {
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Progress
-            value={progressPercentage}
-            className={`h-2 ${isOverBudget ? "[&>div]:bg-destructive" : ""}`}
-          />
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="text-center">
-              <p className="text-muted-foreground">Planned</p>
-              <p className="font-semibold">₹{allocated.toLocaleString()}</p>
+                <CardContent className="space-y-3">
+          {isUnplanned ? (
+            // Special layout for unplanned spending (no allocated amount)
+            <div className="space-y-3">
+              <div className="text-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-sm text-orange-800 font-medium">Total Unplanned Spending</p>
+                <p className="text-2xl font-bold text-orange-900">₹{spent.toLocaleString()}</p>
+                <p className="text-xs text-orange-700 mt-1">Not included in budget calculations</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-muted-foreground">Spent</p>
-              <p
-                className={`font-semibold ${isOverBudget ? "text-destructive" : "text-foreground"}`}
-              >
-                ₹{spent.toLocaleString()}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-muted-foreground">Remaining</p>
-              <p
-                className={`font-semibold ${
-                  remaining >= 0 ? "text-success" : "text-destructive"
-                }`}
-              >
-                ₹{remaining.toLocaleString()}
-              </p>
-            </div>
-          </div>
-          {isOverBudget && (
-            <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-              Over budget by ₹{(spent - allocated).toLocaleString()}
-            </div>
+          ) : (
+            // Normal layout for planned categories
+            <>
+              <Progress
+                value={progressPercentage}
+                className={`h-2 ${isOverBudget ? "[&>div]:bg-destructive" : ""}`}
+              />
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="text-center">
+                  <p className="text-muted-foreground">Planned</p>
+                  <p className="font-semibold">₹{allocated.toLocaleString()}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted-foreground">Spent</p>
+                  <p
+                    className={`font-semibold ${isOverBudget ? "text-destructive" : "text-foreground"}`}
+                  >
+                    ₹{spent.toLocaleString()}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted-foreground">Remaining</p>
+                  <p
+                    className={`font-semibold ${
+                      remaining >= 0 ? "text-success" : "text-destructive"
+                    }`}
+                  >
+                    ₹{remaining.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              {isOverBudget && (
+                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+                  Over budget by ₹{(spent - allocated).toLocaleString()}
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -1628,7 +1902,7 @@ const BudgetDashboard = () => {
           totalInvestmentAmount={totalInvestmentAmount}
           currentUser={currentUser}
           onInvestmentPlanUpdate={onInvestmentPlanUpdate}
-          currentInvestmentPlan={currentInvestmentPlan}
+                    currentInvestmentPlan={currentProfile.investmentPlan}
         />
       </div>
     );
@@ -3336,7 +3610,7 @@ const BudgetDashboard = () => {
 
         {/* Show quick stats only if we have data or it's current month */}
         {(allocatedAmounts.hasData || budgetConfig) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <QuickStatsCard
               title="Total Budget"
               amount={calculatedTotalBudget}
@@ -3362,18 +3636,19 @@ const BudgetDashboard = () => {
               icon={PiggyBank}
               variant="success"
             />
-            <QuickStatsCard
+                        <QuickStatsCard
               title="Investments"
               amount={allocatedAmounts.investments}
               icon={TrendingUp}
               variant="default"
             />
+            
           </div>
         )}
 
         {/* Main Navigation Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-muted p-1 rounded-lg">
+                    <TabsList className="grid w-full grid-cols-8 bg-muted p-1 rounded-lg">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -3386,9 +3661,13 @@ const BudgetDashboard = () => {
               <Music className="h-4 w-4" />
               <span className="hidden sm:inline">Want</span>
             </TabsTrigger>
-            <TabsTrigger value="savings" className="flex items-center gap-2">
+                        <TabsTrigger value="savings" className="flex items-center gap-2">
               <PiggyBank className="h-4 w-4" />
               <span className="hidden sm:inline">Savings</span>
+            </TabsTrigger>
+            <TabsTrigger value="unplanned" className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="hidden sm:inline">Unplanned</span>
             </TabsTrigger>
             <TabsTrigger
               value="investments"
@@ -3536,7 +3815,7 @@ const BudgetDashboard = () => {
                 </Card>
               )}
               {/* Budget Category Progress Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 <CategoryProgressCard
                   title="Need (Essential)"
                   icon={Home}
@@ -3558,12 +3837,19 @@ const BudgetDashboard = () => {
                   spent={categorySpending.savings}
                   variant="savings"
                 />
-                <CategoryProgressCard
+                                <CategoryProgressCard
                   title="Investments"
                   icon={TrendingUp}
                   allocated={allocatedAmounts.investments}
                   spent={totalInvestmentSpent}
                   variant="investments"
+                />
+                <CategoryProgressCard
+                  title="Unplanned"
+                  icon={AlertTriangle}
+                  allocated={0}
+                  spent={categorySpending.unplanned}
+                  variant="unplanned"
                 />
               </div>
 
@@ -3601,7 +3887,7 @@ const BudgetDashboard = () => {
                         ₹{totalSpent.toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Need + Want + Savings + Investments
+                                                Need + Want + Savings + Investments + Unplanned
                       </p>
                     </div>
                     <div className="text-center p-4 bg-background/50 rounded-lg">
@@ -3762,6 +4048,65 @@ const BudgetDashboard = () => {
                   <ExpenseAndRefundTable
                     category="savings"
                     categoryTitle="Savings"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+                    </TabsContent>
+
+          <TabsContent value="unplanned">
+            <div className="space-y-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-600">
+                    <AlertTriangle className="h-6 w-6" />
+                    Unplanned Expenses
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Track unexpected expenses that weren't part of your monthly budget planning
+                  </p>
+                  <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-xs text-orange-800 font-medium">
+                      💡 Note: Unplanned expenses are not included in budget percentage calculations
+                    </p>
+                    <p className="text-xs text-orange-700 mt-1">
+                      These are tracked separately to help you understand spending patterns outside your planned budget
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <CategoryProgressCard
+                      title="Unplanned Spending"
+                      icon={AlertTriangle}
+                      allocated={0}
+                      spent={categorySpending.unplanned}
+                      variant="unplanned"
+                    />
+                  </div>
+                  {currentUser === "combined" ? (
+                    <div className="p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/50">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Switch to an individual profile to add new expenses
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <ExpenseEntryDialog
+                        category="unplanned"
+                        categoryTitle="Unplanned"
+                        icon={AlertTriangle}
+                      />
+                      <RefundEntryDialog
+                        category="unplanned"
+                        categoryTitle="Unplanned"
+                        icon={AlertTriangle}
+                      />
+                    </div>
+                  )}
+                  <ExpenseAndRefundTable
+                    category="unplanned"
+                    categoryTitle="Unplanned"
                   />
                 </CardContent>
               </Card>

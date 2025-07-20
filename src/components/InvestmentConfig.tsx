@@ -70,6 +70,7 @@ interface Portfolio {
   allocatedAmount: number;
   investedAmount: number;
   allowDirectInvestment: boolean;
+  skipCategoriesOnly: boolean;
   categories: PortfolioCategory[];
 }
 
@@ -156,13 +157,14 @@ const InvestmentConfig = ({
     });
   };
 
-  const addPortfolio = (
+    const addPortfolio = (
     name: string,
     allocationType: "percentage" | "amount",
     allocationValue: number,
     allowDirectInvestment: boolean,
+    skipCategoriesOnly: boolean,
   ) => {
-    const newPortfolio: Portfolio = {
+        const newPortfolio: Portfolio = {
       id: Date.now().toString(),
       name,
       allocationType,
@@ -170,6 +172,7 @@ const InvestmentConfig = ({
       allocatedAmount: 0,
       investedAmount: 0,
       allowDirectInvestment,
+      skipCategoriesOnly,
       categories: [],
     };
 
@@ -181,21 +184,23 @@ const InvestmentConfig = ({
     setInvestmentPlan(newPlan);
   };
 
-  const updatePortfolio = (
+    const updatePortfolio = (
     portfolioId: string,
     name: string,
     allocationType: "percentage" | "amount",
     allocationValue: number,
     allowDirectInvestment: boolean,
+    skipCategoriesOnly: boolean,
   ) => {
     const updatedPortfolios = investmentPlan.portfolios.map((portfolio) =>
       portfolio.id === portfolioId
-        ? {
+                ? {
             ...portfolio,
             name,
             allocationType,
             allocationValue,
             allowDirectInvestment,
+            skipCategoriesOnly,
           }
         : portfolio,
     );
@@ -281,7 +286,7 @@ const InvestmentConfig = ({
     setInvestmentPlan(newPlan);
   };
 
-  const addFund = (portfolioId: string, categoryId: string, name: string) => {
+    const addFund = (portfolioId: string, categoryId: string, name: string) => {
     const newFund: Fund = {
       id: Date.now().toString(),
       name,
@@ -289,18 +294,51 @@ const InvestmentConfig = ({
       investedAmount: 0,
     };
 
-    const updatedPortfolios = investmentPlan.portfolios.map((portfolio) =>
-      portfolio.id === portfolioId
-        ? {
+    const updatedPortfolios = investmentPlan.portfolios.map((portfolio) => {
+      if (portfolio.id === portfolioId) {
+        // For skipCategoriesOnly portfolios, create a "direct" category if it doesn't exist
+        if (categoryId === "direct" && portfolio.skipCategoriesOnly) {
+          const directCategory = portfolio.categories.find(c => c.id === "direct");
+          if (!directCategory) {
+            // Create the direct category
+            const newDirectCategory: PortfolioCategory = {
+              id: "direct",
+              name: "Direct Funds",
+              allocationType: "amount",
+              allocationValue: portfolio.allocatedAmount,
+              allocatedAmount: portfolio.allocatedAmount,
+              investedAmount: 0,
+              funds: [newFund],
+            };
+            return {
+              ...portfolio,
+              categories: [...portfolio.categories, newDirectCategory],
+            };
+          } else {
+            // Add fund to existing direct category
+            return {
+              ...portfolio,
+              categories: portfolio.categories.map((category) =>
+                category.id === categoryId
+                  ? { ...category, funds: [...category.funds, newFund] }
+                  : category,
+              ),
+            };
+          }
+        } else {
+          // Regular category handling
+          return {
             ...portfolio,
             categories: portfolio.categories.map((category) =>
               category.id === categoryId
                 ? { ...category, funds: [...category.funds, newFund] }
                 : category,
             ),
-          }
-        : portfolio,
-    );
+          };
+        }
+      }
+      return portfolio;
+    });
 
     const recalculatedPortfolios = updatePortfolioAmounts(updatedPortfolios);
     const newPlan = { portfolios: recalculatedPortfolios };
@@ -403,11 +441,12 @@ const InvestmentConfig = ({
     onSave,
   }: {
     portfolio?: Portfolio;
-    onSave: (
+        onSave: (
       name: string,
       allocationType: "percentage" | "amount",
       allocationValue: number,
       allowDirectInvestment: boolean,
+      skipCategoriesOnly: boolean,
     ) => void;
   }) => {
     const [open, setOpen] = useState(false);
@@ -416,20 +455,23 @@ const InvestmentConfig = ({
       "percentage" | "amount"
     >("percentage");
     const [allocationValue, setAllocationValue] = useState("");
-    const [allowDirectInvestment, setAllowDirectInvestment] = useState(false);
+        const [allowDirectInvestment, setAllowDirectInvestment] = useState(false);
+    const [skipCategoriesOnly, setSkipCategoriesOnly] = useState(false);
 
     // Initialize form data when dialog opens
     useEffect(() => {
       if (open && portfolio) {
         setName(portfolio.name);
         setAllocationType(portfolio.allocationType);
-        setAllocationValue(portfolio.allocationValue.toString());
+                setAllocationValue(portfolio.allocationValue.toString());
         setAllowDirectInvestment(portfolio.allowDirectInvestment);
-      } else if (open && !portfolio) {
+        setSkipCategoriesOnly(portfolio.skipCategoriesOnly || false);
+            } else if (open && !portfolio) {
         setName("");
         setAllocationType("percentage");
         setAllocationValue("");
         setAllowDirectInvestment(false);
+        setSkipCategoriesOnly(false);
       }
     }, [open, portfolio]);
 
@@ -444,17 +486,19 @@ const InvestmentConfig = ({
         return;
       }
 
-      onSave(
+            onSave(
         name,
         allocationType,
         parseFloat(allocationValue),
         allowDirectInvestment,
+        skipCategoriesOnly,
       );
       setOpen(false);
-      if (!portfolio) {
+            if (!portfolio) {
         setName("");
         setAllocationValue("");
         setAllowDirectInvestment(false);
+        setSkipCategoriesOnly(false);
       }
     };
 
@@ -523,20 +567,40 @@ const InvestmentConfig = ({
                 required
               />
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="direct-investment"
-                checked={allowDirectInvestment}
-                onCheckedChange={setAllowDirectInvestment}
-              />
-              <Label htmlFor="direct-investment" className="text-sm">
-                Allow direct investment (skip categories/funds)
-              </Label>
+                        <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="direct-investment"
+                  checked={allowDirectInvestment}
+                  onCheckedChange={(checked) => {
+                    setAllowDirectInvestment(checked as boolean);
+                    if (checked) setSkipCategoriesOnly(false);
+                  }}
+                />
+                <Label htmlFor="direct-investment" className="text-sm">
+                  Allow direct investment (skip categories/funds)
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="skip-categories"
+                  checked={skipCategoriesOnly}
+                  onCheckedChange={(checked) => {
+                    setSkipCategoriesOnly(checked as boolean);
+                    if (checked) setAllowDirectInvestment(false);
+                  }}
+                  disabled={allowDirectInvestment}
+                />
+                <Label htmlFor="skip-categories" className="text-sm">
+                  Skip categories only (direct fund entry)
+                </Label>
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg">
-              💡 Enable this for simple investments like direct government
-              schemes, gold, or fixed deposits where you don't need to track
-              categories and funds.
+
+            <div className="text-xs text-muted-foreground p-3 bg-muted/30 rounded-lg space-y-2">
+              <p>💡 <strong>Direct Investment:</strong> Skip all categorization - ideal for simple investments like government schemes, gold, or fixed deposits.</p>
+              <p>📈 <strong>Skip Categories:</strong> Skip category level but allow direct fund entry - perfect for stock market investments where you want to track individual stocks directly.</p>
             </div>
             <div className="flex justify-end space-x-2">
               <Button
@@ -849,18 +913,20 @@ const InvestmentConfig = ({
                 Manage your investment portfolios and their allocations
               </p>
             </div>
-            <PortfolioDialog
+                        <PortfolioDialog
               onSave={(
                 name,
                 allocationType,
                 allocationValue,
                 allowDirectInvestment,
+                skipCategoriesOnly,
               ) =>
                 addPortfolio(
                   name,
                   allocationType,
                   allocationValue,
                   allowDirectInvestment,
+                  skipCategoriesOnly,
                 )
               }
             />
@@ -895,11 +961,19 @@ const InvestmentConfig = ({
                           <span>
                             ₹{portfolio.allocatedAmount.toLocaleString()}
                           </span>
-                          {portfolio.allowDirectInvestment && (
+                                                    {portfolio.allowDirectInvestment && (
                             <>
                               <span>•</span>
                               <Badge variant="secondary" className="text-xs">
                                 Direct Investment
+                              </Badge>
+                            </>
+                          )}
+                          {portfolio.skipCategoriesOnly && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="outline" className="text-xs">
+                                Skip Categories
                               </Badge>
                             </>
                           )}
@@ -908,11 +982,12 @@ const InvestmentConfig = ({
                       <div className="flex items-center space-x-2">
                         <PortfolioDialog
                           portfolio={portfolio}
-                          onSave={(
+                                                    onSave={(
                             name,
                             allocationType,
                             allocationValue,
                             allowDirectInvestment,
+                            skipCategoriesOnly,
                           ) =>
                             updatePortfolio(
                               portfolio.id,
@@ -920,6 +995,7 @@ const InvestmentConfig = ({
                               allocationType,
                               allocationValue,
                               allowDirectInvestment,
+                              skipCategoriesOnly,
                             )
                           }
                         />
@@ -955,8 +1031,8 @@ const InvestmentConfig = ({
                       </div>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {!portfolio.allowDirectInvestment && (
+                                    <CardContent className="space-y-4">
+                    {!portfolio.allowDirectInvestment && !portfolio.skipCategoriesOnly && (
                       <>
                         <div className="flex items-center justify-between">
                           <h5 className="font-medium">Categories</h5>
@@ -1165,7 +1241,7 @@ const InvestmentConfig = ({
                         )}
                       </>
                     )}
-                    {portfolio.allowDirectInvestment && (
+                                        {portfolio.allowDirectInvestment && (
                       <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
@@ -1185,6 +1261,120 @@ const InvestmentConfig = ({
                               No subcategories needed
                             </p>
                           </div>
+                        </div>
+                      </div>
+                    )}
+                    {portfolio.skipCategoriesOnly && (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h5 className="font-medium text-orange-800">
+                                Direct Fund Entry Portfolio
+                              </h5>
+                              <p className="text-sm text-orange-700">
+                                Skip categories and add funds directly - perfect for stock market investments.
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs text-orange-600">
+                                Fund Level
+                              </span>
+                              <p className="text-sm font-bold text-orange-800">
+                                Direct fund tracking
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h5 className="font-medium">Direct Funds</h5>
+                            <FundDialog
+                              portfolioId={portfolio.id}
+                              categoryId="direct"
+                              onSave={(name) =>
+                                addFund(portfolio.id, "direct", name)
+                              }
+                            />
+                          </div>
+
+                          {(!portfolio.categories.length || !portfolio.categories.find(c => c.id === "direct")?.funds?.length) ? (
+                            <div className="text-center py-4 text-muted-foreground text-sm">
+                              No funds added yet
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {portfolio.categories.find(c => c.id === "direct")?.funds?.map((fund) => (
+                                <div
+                                  key={fund.id}
+                                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                                >
+                                  <div>
+                                    <p className="font-medium text-sm">
+                                      {fund.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Direct fund entry
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <FundDialog
+                                      portfolioId={portfolio.id}
+                                      categoryId="direct"
+                                      fund={fund}
+                                      onSave={(name) =>
+                                        updateFund(
+                                          portfolio.id,
+                                          "direct",
+                                          fund.id,
+                                          name,
+                                        )
+                                      }
+                                    />
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>
+                                            Delete Fund
+                                          </AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to
+                                            delete "{fund.name}"?
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>
+                                            Cancel
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() =>
+                                              deleteFund(
+                                                portfolio.id,
+                                                "direct",
+                                                fund.id,
+                                              )
+                                            }
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </div>
+                              )) || []}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
