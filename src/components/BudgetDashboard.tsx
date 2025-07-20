@@ -1449,11 +1449,12 @@ const BudgetDashboard = () => {
     allocated: number;
     spent: number;
     variant?: string;
-  }) => {
+    }) => {
     const remaining = allocated - spent;
     const progressPercentage =
       allocated > 0 ? Math.min((spent / allocated) * 100, 100) : 0;
-    const isOverBudget = spent > allocated;
+    const isOverBudget = spent > allocated && allocated > 0;
+    const isUnplanned = variant === "unplanned";
 
     return (
       <Card className="shadow-card">
