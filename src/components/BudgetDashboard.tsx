@@ -3740,6 +3740,65 @@ const BudgetDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+                    </TabsContent>
+
+          <TabsContent value="unplanned">
+            <div className="space-y-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-600">
+                    <AlertTriangle className="h-6 w-6" />
+                    Unplanned Expenses
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Track unexpected expenses that weren't part of your monthly budget planning
+                  </p>
+                  <div className="mt-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-xs text-orange-800 font-medium">
+                      💡 Note: Unplanned expenses are not included in budget percentage calculations
+                    </p>
+                    <p className="text-xs text-orange-700 mt-1">
+                      These are tracked separately to help you understand spending patterns outside your planned budget
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <CategoryProgressCard
+                      title="Unplanned Spending"
+                      icon={AlertTriangle}
+                      allocated={0}
+                      spent={categorySpending.unplanned}
+                      variant="unplanned"
+                    />
+                  </div>
+                  {currentUser === "combined" ? (
+                    <div className="p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/50">
+                      <p className="text-sm text-muted-foreground text-center">
+                        Switch to an individual profile to add new expenses
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <ExpenseEntryDialog
+                        category="unplanned"
+                        categoryTitle="Unplanned"
+                        icon={AlertTriangle}
+                      />
+                      <RefundEntryDialog
+                        category="unplanned"
+                        categoryTitle="Unplanned"
+                        icon={AlertTriangle}
+                      />
+                    </div>
+                  )}
+                  <ExpenseAndRefundTable
+                    category="unplanned"
+                    categoryTitle="Unplanned"
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="investments">
