@@ -1198,9 +1198,43 @@ const BudgetDashboard = () => {
     });
   };
 
-  const getTagsForCategory = (category: string) => {
-    const defaultTags =
+    const getTagsForCategory = (category: string) => {
+    let defaultTags =
       DEFAULT_TAGS[category as keyof typeof DEFAULT_TAGS] || [];
+
+    // For unplanned category, provide profile-specific tags
+    if (category === "unplanned") {
+      if (currentUser === "murali") {
+        defaultTags = [
+          "Medical Emergency",
+          "Car Repair",
+          "Home Repair",
+          "Sent to Valar",
+          "Unexpected Travel",
+          "Others",
+        ];
+      } else if (currentUser === "valar") {
+        defaultTags = [
+          "Medical Emergency",
+          "Car Repair",
+          "Home Repair",
+          "Sent to Murali",
+          "Unexpected Travel",
+          "Others",
+        ];
+      } else {
+        // Combined view shows both options
+        defaultTags = [
+          "Medical Emergency",
+          "Car Repair",
+          "Home Repair",
+          "Sent to Valar",
+          "Sent to Murali",
+          "Unexpected Travel",
+          "Others",
+        ];
+      }
+    }
 
     let customTags = [];
     if (currentUser === "combined") {
