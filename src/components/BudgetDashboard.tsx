@@ -1460,7 +1460,7 @@ const BudgetDashboard = () => {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Icon
+                            <Icon
                 className={`h-5 w-5 ${
                   variant === "need"
                     ? "text-destructive"
@@ -1470,7 +1470,9 @@ const BudgetDashboard = () => {
                         ? "text-success"
                         : variant === "investments"
                           ? "text-primary"
-                          : "text-muted-foreground"
+                          : variant === "unplanned"
+                            ? "text-orange-600"
+                            : "text-muted-foreground"
                 }`}
               />
               <span className="text-sm font-medium">{title}</span>
