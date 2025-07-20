@@ -3387,7 +3387,7 @@ const BudgetDashboard = () => {
 
         {/* Show quick stats only if we have data or it's current month */}
         {(allocatedAmounts.hasData || budgetConfig) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <QuickStatsCard
               title="Total Budget"
               amount={calculatedTotalBudget}
@@ -3419,12 +3419,7 @@ const BudgetDashboard = () => {
               icon={TrendingUp}
               variant="default"
             />
-            <QuickStatsCard
-              title="Unplanned"
-              amount={categorySpending.unplanned}
-              icon={AlertTriangle}
-              variant="secondary"
-            />
+            
           </div>
         )}
 
