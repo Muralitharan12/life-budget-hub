@@ -310,7 +310,19 @@ const BudgetDashboard = () => {
         },
         expenses: supabaseTransactions.filter((t) => t.type === "expense"),
         customTags: [],
-        investmentPlan: { portfolios: portfolios || [] },
+                investmentPlan: {
+          portfolios: (portfolios || []).map(p => ({
+            id: p.id,
+            name: p.name,
+            allocationType: p.allocation_type,
+            allocationValue: p.allocation_value,
+            allocatedAmount: p.allocated_amount,
+            investedAmount: p.invested_amount,
+            allowDirectInvestment: p.allow_direct_investment,
+            skipCategoriesOnly: false, // Default value since not in DB yet
+            categories: [], // Categories will need to be loaded separately
+          }))
+        },
         investmentEntries: supabaseTransactions.filter(
           (t) => t.type === "investment",
         ),
