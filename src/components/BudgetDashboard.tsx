@@ -137,7 +137,7 @@ interface ExpenseEntry {
   spentFor: string;
   amount: number;
   notes: string;
-  category: "need" | "want" | "savings" | "investments";
+    category: "need" | "want" | "savings" | "investments" | "unplanned";
   tag?: string;
   paymentType?: "SENT BY ME" | "SENT TO VALAR" | "SENT TO MURALI";
 }
@@ -154,7 +154,7 @@ interface RefundEntry {
   refundFor: string;
   amount: number;
   notes: string;
-  category: "need" | "want" | "savings" | "investments";
+    category: "need" | "want" | "savings" | "investments" | "unplanned";
   tag?: string;
   originalExpenseId?: string;
 }
@@ -196,6 +196,15 @@ const DEFAULT_TAGS = {
   ],
   savings: ["Emergency Fund", "Fixed Deposit", "Others", "Savings Account"],
   investments: ["Mutual Funds", "Others", "PPF", "Stocks", "SIP"],
+  unplanned: [
+    "Medical Emergency",
+    "Car Repair",
+    "Home Repair",
+    "Sent to Valar",
+    "Sent to Murali",
+    "Unexpected Travel",
+    "Others",
+  ],
 };
 
 const TAG_COLORS = {
@@ -257,7 +266,7 @@ const BudgetDashboard = () => {
       partnerName: "Valar",
       salary: 0,
       budgetPercentage: 0,
-      budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0 },
+        budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0, unplanned: 0 },
       expenses: [],
       customTags: [],
       investmentPlan: { portfolios: [] },
@@ -270,7 +279,7 @@ const BudgetDashboard = () => {
       partnerName: "Murali",
       salary: 0,
       budgetPercentage: 0,
-      budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0 },
+        budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0, unplanned: 0 },
       expenses: [],
       customTags: [],
       investmentPlan: { portfolios: [] },
@@ -307,7 +316,7 @@ const BudgetDashboard = () => {
         partnerName: "",
         salary: 0,
         budgetPercentage: 0,
-        budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0 },
+          budgetAllocation: { need: 0, want: 0, savings: 0, investments: 0, unplanned: 0 },
         expenses: [],
         customTags: [],
         investmentPlan: { portfolios: [] },
