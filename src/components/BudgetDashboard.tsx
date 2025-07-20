@@ -880,9 +880,15 @@ const BudgetDashboard = () => {
               is_active: true,
             });
             console.log(`Saved portfolio: ${portfolio.name}`);
-          } catch (error) {
+                    } catch (error) {
             console.warn("Failed to save portfolio:", portfolio.name, error);
-            throw error; // Re-throw to trigger the catch below
+            let errorMsg = "Unknown error";
+            if (error instanceof Error) {
+              errorMsg = error.message;
+            } else if (error && typeof error === 'object' && error.message) {
+              errorMsg = error.message;
+            }
+            throw new Error(`Failed to save portfolio "${portfolio.name}": ${errorMsg}`);
           }
         }
       }
