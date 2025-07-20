@@ -70,6 +70,7 @@ interface Portfolio {
   allocatedAmount: number;
   investedAmount: number;
   allowDirectInvestment: boolean;
+  skipCategoriesOnly: boolean;
   categories: PortfolioCategory[];
 }
 
@@ -156,13 +157,14 @@ const InvestmentConfig = ({
     });
   };
 
-  const addPortfolio = (
+    const addPortfolio = (
     name: string,
     allocationType: "percentage" | "amount",
     allocationValue: number,
     allowDirectInvestment: boolean,
+    skipCategoriesOnly: boolean,
   ) => {
-    const newPortfolio: Portfolio = {
+        const newPortfolio: Portfolio = {
       id: Date.now().toString(),
       name,
       allocationType,
@@ -170,6 +172,7 @@ const InvestmentConfig = ({
       allocatedAmount: 0,
       investedAmount: 0,
       allowDirectInvestment,
+      skipCategoriesOnly,
       categories: [],
     };
 
@@ -181,21 +184,23 @@ const InvestmentConfig = ({
     setInvestmentPlan(newPlan);
   };
 
-  const updatePortfolio = (
+    const updatePortfolio = (
     portfolioId: string,
     name: string,
     allocationType: "percentage" | "amount",
     allocationValue: number,
     allowDirectInvestment: boolean,
+    skipCategoriesOnly: boolean,
   ) => {
     const updatedPortfolios = investmentPlan.portfolios.map((portfolio) =>
       portfolio.id === portfolioId
-        ? {
+                ? {
             ...portfolio,
             name,
             allocationType,
             allocationValue,
             allowDirectInvestment,
+            skipCategoriesOnly,
           }
         : portfolio,
     );
