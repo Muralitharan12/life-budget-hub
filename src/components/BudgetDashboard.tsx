@@ -353,8 +353,8 @@ const BudgetDashboard = () => {
       if (budgetConfig && (budgetConfig.monthly_salary > 0 || budgetConfig.budget_percentage > 0)) {
         return true;
       }
-      // For localStorage users, check if they have valid profile data
-      if (currentProfile.salary > 0 && currentProfile.budgetPercentage > 0) {
+            // Check if the user has valid configuration data
+      if (budgetConfig && budgetConfig.monthly_salary > 0 && budgetConfig.budget_percentage > 0) {
         return true;
       }
       return false;
@@ -371,7 +371,7 @@ const BudgetDashboard = () => {
       });
     }
 
-    // For localStorage data, check if we have expenses or transactions
+        // For combined view, aggregate data from all profiles
     if (currentUser === "combined") {
       const hasExpenses = [
         ...profiles.murali.expenses,
@@ -770,8 +770,8 @@ const BudgetDashboard = () => {
               console.warn("Failed to save portfolio:", portfolio.name, error);
             }
           }
-        } else {
-          // For localStorage users
+                } else {
+          // For Supabase users
           handleInvestmentPlanUpdate(configurations.investmentPlan);
         }
       }
@@ -805,56 +805,10 @@ const BudgetDashboard = () => {
     }
   }, [selectedMonth, selectedYear, user]);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("budgetProfiles");
-    if (saved) {
-      const loadedProfiles = JSON.parse(saved);
+  
 
-      // Add backward compatibility for portfolios without allowDirectInvestment field
-      Object.keys(loadedProfiles).forEach((userKey) => {
-        if (loadedProfiles[userKey].investmentPlan?.portfolios) {
-          loadedProfiles[userKey].investmentPlan.portfolios = loadedProfiles[
-            userKey
-          ].investmentPlan.portfolios.map((portfolio: any) => ({
-            ...portfolio,
-            allowDirectInvestment: portfolio.allowDirectInvestment ?? false,
-            investedAmount: portfolio.investedAmount ?? 0,
-            categories:
-              portfolio.categories?.map((category: any) => ({
-                ...category,
-                investedAmount: category.investedAmount ?? 0,
-                funds:
-                  category.funds?.map((fund: any) => ({
-                    ...fund,
-                    investedAmount: fund.investedAmount ?? 0,
-                  })) || [],
-              })) || [],
-          }));
-        }
-
-        // Add backward compatibility for investmentEntries
-        if (!loadedProfiles[userKey].investmentEntries) {
-          loadedProfiles[userKey].investmentEntries = [];
-        }
-
-        // Add backward compatibility for bankBalances
-        if (!loadedProfiles[userKey].bankBalances) {
-          loadedProfiles[userKey].bankBalances = [];
-        }
-
-        // Add backward compatibility for refunds
-        if (!loadedProfiles[userKey].refunds) {
-          loadedProfiles[userKey].refunds = [];
-        }
-      });
-
-      setProfiles(loadedProfiles);
-    }
-  }, []);
-
-  const saveProfiles = (newProfiles: typeof profiles) => {
+    const saveProfiles = (newProfiles: typeof profiles) => {
     setProfiles(newProfiles);
-    localStorage.setItem("budgetProfiles", JSON.stringify(newProfiles));
   };
 
   const addExpense = (
