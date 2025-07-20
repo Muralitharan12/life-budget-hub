@@ -758,16 +758,50 @@ const BudgetDashboard = () => {
     }
   };
 
-  const handleInvestmentPlanUpdate = (plan: InvestmentPlan) => {
-    const updatedProfiles = {
-      ...profiles,
-      [currentUser]: {
-        ...profiles[currentUser],
-        investmentPlan: plan,
-      },
-    };
+    const handleInvestmentPlanUpdate = async (plan: InvestmentPlan) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save your investment plan.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    saveProfiles(updatedProfiles);
+    try {
+      // Save each portfolio to Supabase
+      for (const portfolio of plan.portfolios) {
+        try {
+          await saveInvestmentPortfolio({
+            name: portfolio.name,
+            allocation_type: portfolio.allocationType,
+            allocation_value: portfolio.allocationValue,
+            allocated_amount: portfolio.allocatedAmount,
+            allow_direct_investment: portfolio.allowDirectInvestment,
+            is_active: true,
+          });
+          console.log(`Saved portfolio: ${portfolio.name}`);
+        } catch (error) {
+          console.warn("Failed to save portfolio:", portfolio.name, error);
+          throw error; // Re-throw to trigger the catch below
+        }
+      }
+
+      // Refresh data to show the saved portfolios
+      await refetch();
+
+      toast({
+        title: "Investment Plan Saved",
+        description: `Successfully saved ${plan.portfolios.length} portfolios to your account.`,
+      });
+    } catch (error) {
+      console.error("Error saving investment plan:", error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save investment plan. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleConfigurationsInherited = async (configurations: {
