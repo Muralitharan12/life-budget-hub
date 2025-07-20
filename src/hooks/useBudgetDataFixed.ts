@@ -42,7 +42,7 @@ export interface Transaction {
   budget_month: number;
   budget_year: number;
   type: 'expense' | 'income' | 'refund' | 'investment' | 'savings' | 'transfer';
-  category: 'need' | 'want' | 'savings' | 'investments';
+    category: 'need' | 'want' | 'savings' | 'investments' | 'unplanned';
   amount: number;
   description?: string;
   notes?: string;
