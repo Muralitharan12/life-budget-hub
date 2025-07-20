@@ -68,6 +68,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useBudgetData } from "@/hooks/useBudgetData";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import SalaryConfig from "./SalaryConfig";
 import InvestmentConfig from "./InvestmentConfig";
 import ConfigurationInheritance from "./ConfigurationInheritance";
