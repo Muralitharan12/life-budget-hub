@@ -688,13 +688,22 @@ const BudgetDashboard = () => {
     investmentAmounts.portfolioInvested.values(),
   ).reduce((sum, amount) => sum + amount, 0);
 
-  // Updated total spent calculation: sum of all category spending with new investment tracking
+    // Updated total spent calculation: sum of all category spending with new investment tracking
+  // Note: unplanned spending is included in total spent for tracking but not in budget calculations
   const totalSpent =
     categorySpending.need +
     categorySpending.want +
     categorySpending.savings +
+    totalInvestmentSpent +
+    categorySpending.unplanned;
+
+  // Budget calculations exclude unplanned spending as it's outside planned budget
+  const totalPlannedSpent =
+    categorySpending.need +
+    categorySpending.want +
+    categorySpending.savings +
     totalInvestmentSpent;
-  const totalRemaining = calculatedTotalBudget - totalSpent;
+  const totalRemaining = calculatedTotalBudget - totalPlannedSpent;
 
   const handleSalaryUpdate = async (
     salary: number,
