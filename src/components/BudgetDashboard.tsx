@@ -1483,39 +1483,53 @@ const BudgetDashboard = () => {
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Progress
-            value={progressPercentage}
-            className={`h-2 ${isOverBudget ? "[&>div]:bg-destructive" : ""}`}
-          />
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="text-center">
-              <p className="text-muted-foreground">Planned</p>
-              <p className="font-semibold">₹{allocated.toLocaleString()}</p>
+                <CardContent className="space-y-3">
+          {isUnplanned ? (
+            // Special layout for unplanned spending (no allocated amount)
+            <div className="space-y-3">
+              <div className="text-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                <p className="text-sm text-orange-800 font-medium">Total Unplanned Spending</p>
+                <p className="text-2xl font-bold text-orange-900">₹{spent.toLocaleString()}</p>
+                <p className="text-xs text-orange-700 mt-1">Not included in budget calculations</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-muted-foreground">Spent</p>
-              <p
-                className={`font-semibold ${isOverBudget ? "text-destructive" : "text-foreground"}`}
-              >
-                ₹{spent.toLocaleString()}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-muted-foreground">Remaining</p>
-              <p
-                className={`font-semibold ${
-                  remaining >= 0 ? "text-success" : "text-destructive"
-                }`}
-              >
-                ₹{remaining.toLocaleString()}
-              </p>
-            </div>
-          </div>
-          {isOverBudget && (
-            <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-              Over budget by ₹{(spent - allocated).toLocaleString()}
-            </div>
+          ) : (
+            // Normal layout for planned categories
+            <>
+              <Progress
+                value={progressPercentage}
+                className={`h-2 ${isOverBudget ? "[&>div]:bg-destructive" : ""}`}
+              />
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="text-center">
+                  <p className="text-muted-foreground">Planned</p>
+                  <p className="font-semibold">₹{allocated.toLocaleString()}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted-foreground">Spent</p>
+                  <p
+                    className={`font-semibold ${isOverBudget ? "text-destructive" : "text-foreground"}`}
+                  >
+                    ₹{spent.toLocaleString()}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted-foreground">Remaining</p>
+                  <p
+                    className={`font-semibold ${
+                      remaining >= 0 ? "text-success" : "text-destructive"
+                    }`}
+                  >
+                    ₹{remaining.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              {isOverBudget && (
+                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+                  Over budget by ₹{(spent - allocated).toLocaleString()}
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
