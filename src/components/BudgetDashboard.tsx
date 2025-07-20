@@ -921,24 +921,35 @@ const BudgetDashboard = () => {
           console.warn('Failed to clear existing portfolios:', clearError);
         }
 
-        // Save each portfolio to Supabase with budget_period_id
+                // Use direct Supabase upsert with budget_period_id to handle conflicts
         for (const portfolio of plan.portfolios) {
           try {
-            await saveInvestmentPortfolio({
-              name: portfolio.name,
-              allocation_type: portfolio.allocationType,
-              allocation_value: portfolio.allocationValue,
-              allocated_amount: portfolio.allocatedAmount,
-              allow_direct_investment: portfolio.allowDirectInvestment,
-              profile_name: currentUser === "combined" ? "murali" : currentUser,
-              budget_period_id: budgetPeriodId,
-              budget_month: selectedMonth + 1,
-              budget_year: selectedYear,
-              is_active: true,
-            });
-            console.log(`Saved portfolio: ${portfolio.name}`);
-                    } catch (error) {
-            console.warn("Failed to save portfolio:", portfolio.name, error);
+            const { data, error } = await supabase
+              .from('investment_portfolios')
+              .upsert({
+                user_id: user.id,
+                profile_name: profileName,
+                budget_period_id: budgetPeriodId,
+                budget_month: selectedMonth + 1,
+                budget_year: selectedYear,
+                name: portfolio.name,
+                allocation_type: portfolio.allocationType,
+                allocation_value: portfolio.allocationValue,
+                allocated_amount: portfolio.allocatedAmount,
+                invested_amount: portfolio.investedAmount || 0,
+                allow_direct_investment: portfolio.allowDirectInvestment,
+                is_active: true,
+              }, {
+                onConflict: 'user_id,profile_name,budget_period_id,budget_month,budget_year,name'
+              })
+              .select();
+
+            if (error) {
+              throw error;
+            }
+            console.log(`Upserted portfolio with budget period: ${portfolio.name}`);
+          } catch (error) {
+            console.warn("Failed to upsert portfolio:", portfolio.name, error);
             let errorMsg = "Unknown error";
             if (error instanceof Error) {
               errorMsg = error.message;
