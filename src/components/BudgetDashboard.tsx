@@ -1765,7 +1765,7 @@ const BudgetDashboard = () => {
           totalInvestmentAmount={totalInvestmentAmount}
           currentUser={currentUser}
           onInvestmentPlanUpdate={onInvestmentPlanUpdate}
-          currentInvestmentPlan={currentInvestmentPlan}
+                    currentInvestmentPlan={currentProfile.investmentPlan}
         />
       </div>
     );
