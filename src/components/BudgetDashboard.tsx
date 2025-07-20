@@ -888,11 +888,30 @@ const BudgetDashboard = () => {
         title: "Investment Plan Saved",
         description: `Successfully saved ${plan.portfolios.length} portfolios to your account.`,
       });
-    } catch (error) {
+        } catch (error) {
       console.error("Error saving investment plan:", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Failed to save investment plan. Please try again.";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error && typeof error === 'object') {
+        // Handle Supabase error format
+        if (error.message) {
+          errorMessage = error.message;
+        } else if (error.error_description) {
+          errorMessage = error.error_description;
+        } else if (error.details) {
+          errorMessage = error.details;
+        } else {
+          errorMessage = JSON.stringify(error);
+        }
+      }
+
       toast({
         title: "Save Failed",
-        description: "Failed to save investment plan. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
