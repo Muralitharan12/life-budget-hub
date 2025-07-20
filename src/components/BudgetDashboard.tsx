@@ -848,7 +848,7 @@ const BudgetDashboard = () => {
     setProfiles(newProfiles);
   };
 
-  const addExpense = (
+    const addExpense = async (
     category: string,
     spentFor: string,
     amount: number,
@@ -866,40 +866,49 @@ const BudgetDashboard = () => {
       return;
     }
 
-    const newExpense: ExpenseEntry = {
-      id: Date.now().toString(),
-      date: selectedDate,
-      spentFor,
-      amount,
-      notes,
-      category: category as "need" | "want" | "savings" | "investments",
-      tag,
-      paymentType: paymentType as
-        | "SENT BY ME"
-        | "SENT TO VALAR"
-        | "SENT TO MURALI",
-    };
-
-    const updatedProfiles = {
-      ...profiles,
-      [currentUser]: {
-        ...profiles[currentUser],
-        expenses: [...profiles[currentUser].expenses, newExpense],
-      },
-    };
-
-    saveProfiles(updatedProfiles);
-
-    // Auto-switch to the month of the added expense
-    const expenseMonth = new Date(selectedDate).getMonth();
-    if (expenseMonth !== selectedMonth) {
-      setSelectedMonth(expenseMonth);
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to add expenses.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    toast({
-      title: "Expense Added",
-      description: `Added ₹${amount} for ${spentFor}`,
-    });
+    try {
+      await addTransaction({
+        type: "expense",
+        category: category as "need" | "want" | "savings" | "investments" | "unplanned",
+        amount: amount,
+        description: spentFor,
+        notes: notes,
+        transaction_date: selectedDate,
+        tag: tag,
+        payment_type: paymentType === "SENT BY ME" ? "upi" :
+                     paymentType === "SENT TO VALAR" ? "upi" :
+                     paymentType === "SENT TO MURALI" ? "upi" : "cash",
+        spent_for: spentFor,
+        status: "active",
+      });
+
+      // Auto-switch to the month of the added expense
+      const expenseMonth = new Date(selectedDate).getMonth();
+      if (expenseMonth !== selectedMonth) {
+        setSelectedMonth(expenseMonth);
+      }
+
+      toast({
+        title: "Expense Added",
+        description: `Added ₹${amount} for ${spentFor}`,
+      });
+    } catch (error) {
+      console.error("Error adding expense:", error);
+      toast({
+        title: "Failed to Add Expense",
+        description: "There was an error adding your expense. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const updateExpense = (
