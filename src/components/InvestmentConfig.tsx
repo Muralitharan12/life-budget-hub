@@ -286,7 +286,7 @@ const InvestmentConfig = ({
     setInvestmentPlan(newPlan);
   };
 
-  const addFund = (portfolioId: string, categoryId: string, name: string) => {
+    const addFund = (portfolioId: string, categoryId: string, name: string) => {
     const newFund: Fund = {
       id: Date.now().toString(),
       name,
@@ -294,18 +294,51 @@ const InvestmentConfig = ({
       investedAmount: 0,
     };
 
-    const updatedPortfolios = investmentPlan.portfolios.map((portfolio) =>
-      portfolio.id === portfolioId
-        ? {
+    const updatedPortfolios = investmentPlan.portfolios.map((portfolio) => {
+      if (portfolio.id === portfolioId) {
+        // For skipCategoriesOnly portfolios, create a "direct" category if it doesn't exist
+        if (categoryId === "direct" && portfolio.skipCategoriesOnly) {
+          const directCategory = portfolio.categories.find(c => c.id === "direct");
+          if (!directCategory) {
+            // Create the direct category
+            const newDirectCategory: PortfolioCategory = {
+              id: "direct",
+              name: "Direct Funds",
+              allocationType: "amount",
+              allocationValue: portfolio.allocatedAmount,
+              allocatedAmount: portfolio.allocatedAmount,
+              investedAmount: 0,
+              funds: [newFund],
+            };
+            return {
+              ...portfolio,
+              categories: [...portfolio.categories, newDirectCategory],
+            };
+          } else {
+            // Add fund to existing direct category
+            return {
+              ...portfolio,
+              categories: portfolio.categories.map((category) =>
+                category.id === categoryId
+                  ? { ...category, funds: [...category.funds, newFund] }
+                  : category,
+              ),
+            };
+          }
+        } else {
+          // Regular category handling
+          return {
             ...portfolio,
             categories: portfolio.categories.map((category) =>
               category.id === categoryId
                 ? { ...category, funds: [...category.funds, newFund] }
                 : category,
             ),
-          }
-        : portfolio,
-    );
+          };
+        }
+      }
+      return portfolio;
+    });
 
     const recalculatedPortfolios = updatePortfolioAmounts(updatedPortfolios);
     const newPlan = { portfolios: recalculatedPortfolios };
