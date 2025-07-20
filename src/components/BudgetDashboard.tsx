@@ -810,13 +810,12 @@ const BudgetDashboard = () => {
       } else {
         // Create new budget period
         console.log('Creating new budget period...');
-        const { data: newPeriod, error: createError } = await supabase
+                const { data: newPeriod, error: createError } = await supabase
           .from('budget_periods')
           .insert({
             user_id: user.id,
             budget_month: selectedMonth + 1,
             budget_year: selectedYear,
-            period_name: `${monthNames[selectedMonth]} ${selectedYear}`,
             is_active: true,
           })
           .select('id')
@@ -1664,7 +1663,7 @@ const BudgetDashboard = () => {
               </div>
               {isOverBudget && (
                 <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
-                  Over budget by ��{(spent - allocated).toLocaleString()}
+                  Over budget by ₹{(spent - allocated).toLocaleString()}
                 </div>
               )}
             </>
