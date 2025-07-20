@@ -433,11 +433,12 @@ const InvestmentConfig = ({
                 setAllocationValue(portfolio.allocationValue.toString());
         setAllowDirectInvestment(portfolio.allowDirectInvestment);
         setSkipCategoriesOnly(portfolio.skipCategoriesOnly || false);
-      } else if (open && !portfolio) {
+            } else if (open && !portfolio) {
         setName("");
         setAllocationType("percentage");
         setAllocationValue("");
         setAllowDirectInvestment(false);
+        setSkipCategoriesOnly(false);
       }
     }, [open, portfolio]);
 
@@ -452,17 +453,19 @@ const InvestmentConfig = ({
         return;
       }
 
-      onSave(
+            onSave(
         name,
         allocationType,
         parseFloat(allocationValue),
         allowDirectInvestment,
+        skipCategoriesOnly,
       );
       setOpen(false);
-      if (!portfolio) {
+            if (!portfolio) {
         setName("");
         setAllocationValue("");
         setAllowDirectInvestment(false);
+        setSkipCategoriesOnly(false);
       }
     };
 
