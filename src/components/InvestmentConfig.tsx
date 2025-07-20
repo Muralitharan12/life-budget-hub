@@ -926,11 +926,19 @@ const InvestmentConfig = ({
                           <span>
                             ₹{portfolio.allocatedAmount.toLocaleString()}
                           </span>
-                          {portfolio.allowDirectInvestment && (
+                                                    {portfolio.allowDirectInvestment && (
                             <>
                               <span>•</span>
                               <Badge variant="secondary" className="text-xs">
                                 Direct Investment
+                              </Badge>
+                            </>
+                          )}
+                          {portfolio.skipCategoriesOnly && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="outline" className="text-xs">
+                                Skip Categories
                               </Badge>
                             </>
                           )}
